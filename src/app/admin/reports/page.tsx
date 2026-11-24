@@ -64,6 +64,7 @@ export default async function ReportsPage() {
       savings: n("savings"),
       gold: n("gold"),
       crypto: n("crypto"),
+      fund: n("fund"),
       cash: Number(s.cash + s.receivable),
       liability: Number(s.liability),
       total:
@@ -71,6 +72,7 @@ export default async function ReportsPage() {
         n("savings") +
         n("gold") +
         n("crypto") +
+        n("fund") +
         Number(s.cash + s.receivable + s.liability),
       cost,
       index: s.vnIndex === null ? null : Number(s.vnIndex),

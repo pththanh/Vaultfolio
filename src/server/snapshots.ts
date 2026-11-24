@@ -130,6 +130,8 @@ export async function loadSnapshots(
           savings: { marketValue: 0n, costBasis: 0n },
           gold: { marketValue: 0n, costBasis: 0n },
           crypto: { marketValue: 0n, costBasis: 0n },
+          // Snapshots taken before funds were added have no such row.
+          fund: { marketValue: 0n, costBasis: 0n },
         },
         // Snapshots taken before the cashbook have no such rows.
         cash: 0n,

@@ -13,12 +13,13 @@ import {
 } from "@/components/vf/form";
 import { buttonClass } from "@/components/vf/ui";
 import { mulQty, parseViMoney, parseViNumber } from "@/lib/calc/decimal";
+import { scaledNavToPrice, toHundreds } from "@/lib/calc/fund/units";
 import { tradeCharges, type FeeConfig } from "@/lib/calc/fees";
 import type { TxType } from "@/lib/calc/types";
 import { formatSignedVnd, formatVnd } from "@/lib/format";
 import { deleteTransaction, saveTransaction } from "./actions";
 
-export type FormClass = "stock" | "crypto" | "gold" | "savings";
+export type FormClass = "stock" | "fund" | "crypto" | "gold" | "savings";
 
 export interface TxInitial {
   id: string;
@@ -45,6 +46,7 @@ interface Props {
 
 const CLASSES: { value: FormClass; label: string }[] = [
   { value: "stock", label: "Cổ phiếu" },
+  { value: "fund", label: "Quỹ mở" },
   { value: "crypto", label: "Crypto" },
   { value: "gold", label: "Vàng" },
   { value: "savings", label: "Tiết kiệm" },
@@ -67,6 +69,10 @@ const TYPES: Record<
     { value: "sell", label: "Bán" },
     { value: "fee", label: "Phí khác" },
   ],
+  fund: [
+    { value: "buy", label: "Mua" },
+    { value: "sell", label: "Bán" },
+  ],
   gold: [
     { value: "buy", label: "Mua" },
     { value: "sell", label: "Bán" },
@@ -75,6 +81,7 @@ const TYPES: Record<
 
 const ACCOUNT_TYPES: Record<FormClass, string[]> = {
   stock: ["broker"],
+  fund: ["broker"],
   crypto: ["exchange", "wallet"],
   gold: ["physical"],
   savings: ["bank"],
@@ -109,6 +116,15 @@ const COPY: Record<
     price: "Giá (₫)",
     pricePh: "2.400.000.000",
     hint: "Nhập giá đã quy đổi sang VND. Số thập phân dùng dấu phẩy (0,25).",
+  },
+  fund: {
+    asset: "Mã quỹ",
+    assetPh: "VD: VMEEF",
+    qty: "Số CCQ",
+    qtyPh: "123,45",
+    price: "NAV khớp (₫/CCQ)",
+    pricePh: "12.345,67",
+    hint: "Ghi theo ngày khớp. Phí bán và thuế tự tính theo từng lô (FIFO) nếu để trống.",
   },
   gold: {
     asset: "Loại vàng & tiệm",
@@ -191,8 +207,8 @@ export function TxForm({
     isSavings || type === "buy" || type === "sell" || type === "dividend_cash";
   const showTax =
     !isSavings &&
-    cls === "stock" &&
-    (type === "sell" || type === "dividend_cash");
+    ((cls === "stock" && (type === "sell" || type === "dividend_cash")) ||
+      (cls === "fund" && type === "sell"));
   const qtyLabel =
     type === "dividend_cash"
       ? "Số CP hưởng"
@@ -205,8 +221,18 @@ export function TxForm({
   // Live preview of the cash flow with suggested fee/tax.
   let preview: string = copy.hint;
   if (!isSavings && type !== "fee") {
-    const q = tryParse(() => parseViNumber(qty));
-    const p = showPrice ? tryParse(() => parseViMoney(price)) : 0n;
+    const isFund = cls === "fund";
+    const q = tryParse(() =>
+      isFund ? toHundreds(parseViNumber(qty)) : parseViNumber(qty),
+    );
+    const p = showPrice
+      ? tryParse(() =>
+          isFund ? scaledNavToPrice(parseViNumber(price)) : parseViMoney(price),
+        )
+      : 0n;
+    // Fund sale charges depend on the lots, which only the server knows.
+    const unknownCharges =
+      isFund && type === "sell" && (fee === "" || tax === "");
     if (q && q > 0n && p !== null) {
       const gross = mulQty(q, p);
       const auto = tradeCharges(cls, type, gross, fees);
@@ -224,7 +250,9 @@ export function TxForm({
           : type === "sell" || type === "dividend_cash"
             ? gross - f - t
             : -f;
-      if (showPrice) {
+      if (unknownCharges) {
+        preview = `Thành tiền ${formatVnd(gross)} · phí và thuế để trống được tính theo từng lô khi lưu`;
+      } else if (showPrice) {
         preview = `Thành tiền ${formatVnd(gross)} · phí ${formatVnd(f)}${showTax ? ` · thuế ${formatVnd(t)}` : ""} · dòng tiền ${formatSignedVnd(cash)}`;
       }
     }
@@ -260,7 +288,7 @@ export function TxForm({
             setCls(v);
             setType("buy");
           }}
-          className="grid grid-cols-4"
+          className="grid grid-cols-5"
           buttonClassName="min-h-10 min-w-0 px-1"
         />
       )}

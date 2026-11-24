@@ -11,7 +11,7 @@ export async function GET() {
     p.txRows.map(({ tx, instrument, account }) => ({
       date: tx.tradeDate,
       type: tx.type,
-      assetClass: instrument.assetClass as "stock" | "crypto" | "gold",
+      assetClass: instrument.assetClass as "stock" | "crypto" | "gold" | "fund",
       symbol: instrument.symbol,
       account: account.name,
       quantity: qtyToString(parseDecimal(tx.quantity)),

@@ -20,6 +20,7 @@ export interface HistoryPoint {
   savings: number;
   gold: number;
   crypto: number;
+  fund: number;
   cash: number;
   /** Negative. */
   liability: number;
@@ -35,7 +36,7 @@ const RANGES: { value: Range; label: string }[] = [
   { value: "1N", label: "1N" },
   { value: "all", label: "Tất cả" },
 ];
-const CLASSES = ["stock", "savings", "gold", "crypto", "cash"] as const;
+const CLASSES = ["stock", "savings", "fund", "gold", "crypto", "cash"] as const;
 
 const nf = (d: number) =>
   new Intl.NumberFormat("vi-VN", {
@@ -160,7 +161,7 @@ export function HistoryChart({ points }: { points: HistoryPoint[] }) {
                   name === "indexScaled"
                     ? "VN-Index (quy đổi)"
                     : name === "cost"
-                      ? "Giá vốn (4 loại đầu tư)"
+                      ? "Giá vốn (5 loại đầu tư)"
                       : name === "liability"
                         ? "Nợ"
                         : name === "total"

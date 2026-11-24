@@ -47,6 +47,7 @@ export const accountTypeEnum = pgEnum("account_type", [
   "physical",
 ]);
 export const txTypeEnum = pgEnum("tx_type", TX_TYPES);
+export const tradeSideEnum = pgEnum("trade_side", ["buy", "sell"]);
 export const interestTypeEnum = pgEnum("interest_type", [
   "end_of_term",
   "monthly",
@@ -150,14 +151,44 @@ export const instruments = pgTable(
     symbol: text().notNull(),
     name: text().notNull(),
     exchange: text(),
-    /** Display unit: share | coin | luong | chi | point. Gold quantities are stored in chỉ. */
+    /** Display unit: share | coin | luong | chi | point | ccq. Gold is stored in chỉ, funds in hundreds of CCQ. */
     unit: text().notNull(),
     quoteCcy: text().notNull().default("VND"),
-    /** CoinGecko id, gold code + shop, DNSE symbol… */
+    /** CoinGecko id, gold code + shop, DNSE symbol, Fmarket product id… */
     providerRef: text(),
     createdAt: createdAt(),
   },
   (t) => [unique().on(t.assetClass, t.symbol)],
+);
+
+/** Fund fees by holding period; a tier ends where the next one starts. */
+export const fundFeeSchedules = pgTable(
+  "fund_fee_schedules",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    instrumentId: uuid()
+      .notNull()
+      .references(() => instruments.id, { onDelete: "cascade" }),
+    side: tradeSideEnum().notNull(),
+    fromMonths: integer().notNull(),
+    /** true: applies from the anniversary (>=); false: from the day after (>). */
+    fromInclusive: boolean().notNull().default(true),
+    feeBps: integer().notNull(),
+    effectiveFrom: isoDate().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    unique("fund_fee_schedules_tier_unique").on(
+      t.instrumentId,
+      t.side,
+      t.effectiveFrom,
+      t.fromMonths,
+    ),
+    check(
+      "fund_fee_schedules_values",
+      sql`${t.fromMonths} >= 0 and ${t.feeBps} between 0 and 10000`,
+    ),
+  ],
 );
 
 export const transactions = pgTable(
@@ -225,7 +256,7 @@ export const prices = pgTable(
       .notNull()
       .references(() => instruments.id, { onDelete: "cascade" }),
     date: isoDate().notNull(),
-    /** VND per unit (gold: per chỉ; stocks already ×1000 from DNSE). */
+    /** VND per unit (gold: per chỉ; funds: per 100 CCQ; stocks already ×1000 from DNSE). */
     price: money().notNull(),
     source: text().notNull(),
     stale: boolean().notNull().default(false),

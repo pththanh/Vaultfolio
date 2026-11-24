@@ -171,6 +171,78 @@ async function main() {
       },
     ]);
   });
+
+  await section("Fmarket NAV quỹ mở (không key, không đăng nhập)", async () => {
+    const res = await fetch("https://api.fmarket.vn/res/products/filter", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        types: ["NEW_FUND", "TRADING_FUND"],
+        issuerIds: [],
+        sortOrder: "DESC",
+        sortField: "navTo6Months",
+        page: 1,
+        pageSize: 100,
+        isIpo: false,
+        fundAssetTypes: [],
+        bondRemainPeriods: [],
+        searchField: "",
+        isBuyByReward: false,
+        thirdAppIds: [],
+      }),
+    });
+    const text = await res.text();
+    if (!res.ok) throw new Error(`HTTP ${res.status} ${text.slice(0, 300)}`);
+    const { rows } = JSON.parse(text).data as {
+      rows: { id: number; shortName: string; nav: number }[];
+    };
+    console.log(`  ${rows.length} quỹ`);
+
+    const vn = (ms: number) =>
+      new Date(ms).toLocaleString("sv-SE", { timeZone: "Asia/Ho_Chi_Minh" });
+    const yyyymmdd = (ms: number) => vn(ms).slice(0, 10).replaceAll("-", "");
+    for (const productId of [68, 82]) {
+      const fund = rows.find((r) => r.id === productId);
+      try {
+        const hist = await fetch(
+          "https://api.fmarket.vn/res/product/get-nav-history",
+          {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              isAllData: 0,
+              productId,
+              fromDate: yyyymmdd(Date.now() - 30 * day * 1000),
+              toDate: yyyymmdd(Date.now()),
+            }),
+          },
+        );
+        const body = await hist.text();
+        if (!hist.ok)
+          throw new Error(`HTTP ${hist.status} ${body.slice(0, 300)}`);
+        const points = (
+          JSON.parse(body).data as {
+            navDate: string;
+            nav: number;
+            createdAt: number;
+          }[]
+        ).sort((a, b) => a.navDate.localeCompare(b.navDate));
+        const last = points.at(-1);
+        console.log(
+          `  ${fund?.shortName ?? productId}: filter ${fund?.nav} · history ${last?.nav} (navDate ${last?.navDate}) · ${points.length} kỳ`,
+        );
+        console.table(
+          points.slice(-5).map((p) => ({
+            navDate: p.navDate,
+            nav: p.nav,
+            created: vn(p.createdAt),
+          })),
+        );
+      } catch (err) {
+        console.log(`  ${productId}: ✗ ${(err as Error).message}`);
+      }
+    }
+  });
 }
 
 main();

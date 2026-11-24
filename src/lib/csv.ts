@@ -1,5 +1,11 @@
 import Papa from "papaparse";
 import { parseDecimal, qtyToString } from "./calc/decimal";
+import {
+  fromHundreds,
+  navToPrice,
+  priceToNav,
+  toHundreds,
+} from "./calc/fund/units";
 import { TX_TYPES, type TxType } from "./calc/types";
 
 export const CSV_HEADER = [
@@ -15,7 +21,7 @@ export const CSV_HEADER = [
   "note",
 ] as const;
 
-const MARKET_CLASSES = ["stock", "crypto", "gold"] as const;
+const MARKET_CLASSES = ["stock", "crypto", "gold", "fund"] as const;
 type MarketClass = (typeof MARKET_CLASSES)[number];
 
 export interface CsvTransaction {
@@ -24,7 +30,7 @@ export interface CsvTransaction {
   assetClass: MarketClass;
   symbol: string;
   account: string;
-  /** Canonical decimal string (gold in chỉ). */
+  /** Canonical decimal string (gold in chỉ, funds in hundreds of CCQ; the file shows CCQ and NAV). */
   quantity: string;
   price: bigint;
   fee: bigint;
@@ -52,8 +58,10 @@ export function toTransactionsCsv(rows: CsvTransaction[]): string {
         r.assetClass,
         guard(r.symbol),
         guard(r.account),
-        r.quantity,
-        r.price.toString(),
+        r.assetClass === "fund"
+          ? qtyToString(fromHundreds(parseDecimal(r.quantity)))
+          : r.quantity,
+        r.assetClass === "fund" ? priceToNav(r.price) : r.price.toString(),
         r.fee.toString(),
         r.tax.toString(),
         guard(r.note),
@@ -67,6 +75,14 @@ function money(value: string, field: string): bigint {
   const v = value.trim() || "0";
   if (!/^-?\d+$/.test(v)) throw new Error(`${field} phải là số nguyên VND`);
   return BigInt(v);
+}
+
+function nav(value: string): bigint {
+  try {
+    return navToPrice(value.trim() || "0");
+  } catch {
+    throw new Error("NAV không hợp lệ (tối đa 2 chữ số thập phân)");
+  }
 }
 
 export function parseTransactionsCsv(text: string): {
@@ -100,16 +116,17 @@ export function parseTransactionsCsv(text: string): {
         throw new Error(`Loại giao dịch không hợp lệ: "${raw.type}"`);
       const assetClass = (raw.asset_class ?? "").trim() as MarketClass;
       if (!MARKET_CLASSES.includes(assetClass))
-        throw new Error("asset_class phải là stock, crypto hoặc gold");
+        throw new Error("asset_class phải là stock, crypto, gold hoặc fund");
+      if (assetClass === "fund" && type !== "buy" && type !== "sell")
+        throw new Error("Quỹ mở chỉ có giao dịch mua và bán");
       const symbol = unguard((raw.symbol ?? "").trim());
       if (!symbol) throw new Error("Thiếu mã tài sản");
       const account = unguard((raw.account ?? "").trim());
       if (!account) throw new Error("Thiếu tài khoản");
       let quantity: string;
       try {
-        quantity = qtyToString(
-          parseDecimal((raw.quantity ?? "").trim() || "0"),
-        );
+        const q = parseDecimal((raw.quantity ?? "").trim() || "0");
+        quantity = qtyToString(assetClass === "fund" ? toHundreds(q) : q);
       } catch {
         throw new Error("Số lượng không hợp lệ (dùng dấu chấm thập phân)");
       }
@@ -121,7 +138,10 @@ export function parseTransactionsCsv(text: string): {
         symbol,
         account,
         quantity,
-        price: money(raw.price ?? "", "price"),
+        price:
+          assetClass === "fund"
+            ? nav(raw.price ?? "")
+            : money(raw.price ?? "", "price"),
         fee: money(raw.fee ?? "", "fee"),
         tax: money(raw.tax ?? "", "tax"),
         note: unguard((raw.note ?? "").trim()),
@@ -136,7 +156,7 @@ export function parseTransactionsCsv(text: string): {
 export interface SnapshotCsvRow {
   date: string;
   byClass: Record<
-    "stock" | "savings" | "gold" | "crypto",
+    "stock" | "savings" | "gold" | "crypto" | "fund",
     { marketValue: bigint; costBasis: bigint }
   >;
   cash: bigint;
@@ -148,7 +168,7 @@ export interface SnapshotCsvRow {
 }
 
 export function toSnapshotsCsv(rows: SnapshotCsvRow[]): string {
-  const classes = ["stock", "savings", "gold", "crypto"] as const;
+  const classes = ["stock", "savings", "fund", "gold", "crypto"] as const;
   return Papa.unparse(
     {
       fields: [

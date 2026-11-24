@@ -10,6 +10,9 @@ export interface FeeConfig {
   dividendTaxBps: number;
   /** Non-term (không kỳ hạn) rate used for early savings withdrawal. */
   demandRateBps: number;
+  /** Tax on fund sales, waived after fundTaxFreeMonths held. */
+  fundTaxBps: number;
+  fundTaxFreeMonths: number;
 }
 
 export const DEFAULT_FEE_CONFIG: FeeConfig = {
@@ -19,6 +22,8 @@ export const DEFAULT_FEE_CONFIG: FeeConfig = {
   sellTaxBps: 10,
   dividendTaxBps: 500,
   demandRateBps: 10,
+  fundTaxBps: 10,
+  fundTaxFreeMonths: 24,
 };
 
 function bps(amount: bigint, rate: number): bigint {
@@ -32,6 +37,8 @@ export function tradeCharges(
   gross: bigint,
   cfg: FeeConfig,
 ): { fee: bigint; tax: bigint } {
+  // Fund charges depend on the fund and on how long each lot was held (calc/fund).
+  if (assetClass === "fund") return { fee: 0n, tax: 0n };
   const feeRate =
     assetClass === "stock"
       ? cfg.stockFeeBps

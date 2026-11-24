@@ -56,9 +56,10 @@ export function netWorthAt(input: PortfolioInput, date: string): NetWorth {
     savings: snap.savings.marketValue,
     gold: snap.gold.marketValue,
     crypto: snap.crypto.marketValue,
+    fund: snap.fund.marketValue,
   };
   return {
-    total: byClass.stock + byClass.savings + byClass.gold + byClass.crypto,
+    total: Object.values(byClass).reduce((s, v) => s + v, 0n),
     byClass,
   };
 }
@@ -78,6 +79,7 @@ export function classSnapshot(
     savings: { marketValue: 0n, costBasis: 0n },
     gold: { marketValue: 0n, costBasis: 0n },
     crypto: { marketValue: 0n, costBasis: 0n },
+    fund: { marketValue: 0n, costBasis: 0n },
   };
   for (const h of computeHoldings(input.transactions, {
     asOf: date,
@@ -106,7 +108,7 @@ export function netContributions(
 ): bigint {
   let flow = 0n;
   for (const tx of input.transactions) {
-    // Account cash is outside the 4 classes: only trades move money in or out of them.
+    // Account cash is outside the investment classes: only trades move money in or out of them.
     if (tx.type === "deposit" || tx.type === "withdraw") continue;
     if (tx.tradeDate > from && tx.tradeDate <= to) flow -= cashFlow(tx);
   }

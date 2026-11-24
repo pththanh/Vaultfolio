@@ -26,13 +26,17 @@ import {
   loadPortfolio,
   type MarketClass,
 } from "@/server/portfolio";
+import { fundPositions } from "@/server/funds";
 import { requireUser } from "@/server/session";
 import { SOURCE_LABEL } from "@/server/sources";
+
+import { FundTable } from "./fund-table";
 
 export const metadata: Metadata = { title: "Danh mục" };
 
 const TABS: { key: MarketClass; label: string }[] = [
   { key: "stock", label: "Cổ phiếu" },
+  { key: "fund", label: "Quỹ mở" },
   { key: "crypto", label: "Crypto" },
   { key: "gold", label: "Vàng" },
 ];
@@ -62,6 +66,13 @@ const COPY: Record<
       "Giá trị tính theo giá tiệm mua lại (giá mua vào). Giá hiển thị theo lượng; 1 lượng = 10 chỉ = 37,5 g. SJC không cập nhật Chủ nhật: dùng giá gần nhất.",
     priceUnit: "₫/lượng",
   },
+  fund: {
+    caption: "Quỹ mở đang nắm giữ",
+    note: "Nguồn: Fmarket · NAV kỳ gần nhất",
+    footnote:
+      "Giá trị tính theo NAV, chưa trừ phí bán và thuế. Thực nhận tính theo từng lô (FIFO), phí theo thời gian nắm giữ; bấm vào quỹ để xem các lô.",
+    priceUnit: "₫/CCQ",
+  },
 };
 
 export default async function PortfolioPage({
@@ -76,6 +87,7 @@ export default async function PortfolioPage({
   const p = await loadPortfolio(user.id);
   const all = holdingsByClass(p, today);
   const cur = all[tab];
+  const positions = tab === "fund" ? await fundPositions(p, today) : null;
   const copy = COPY[tab];
   const plTone = trend(cur.pl).tone;
   const asPrice = (v: bigint) => (tab === "gold" ? perChiToPerLuong(v) : v);
@@ -170,140 +182,155 @@ export default async function PortfolioPage({
       </section>
 
       <section className="rounded-card border border-line bg-surface px-[22px] pt-2 pb-4">
-        <div className={table.wrap}>
-          <table className={cn(table.table, "min-w-[820px]")}>
-            <caption className="pt-3.5 pb-2 text-left text-base font-semibold">
-              {copy.caption}
-            </caption>
-            <thead>
-              <tr className={table.headRow}>
-                <th scope="col" className={table.th}>
-                  Tài sản
-                </th>
-                <th scope="col" className={cn(table.th, "text-right")}>
-                  Số lượng
-                </th>
-                <th scope="col" className={cn(table.th, "text-right")}>
-                  Giá vốn TB
-                </th>
-                <th scope="col" className={cn(table.th, "text-right")}>
-                  Giá hiện tại
-                </th>
-                <th scope="col" className={cn(table.th, "text-right")}>
-                  Giá trị
-                </th>
-                <th scope="col" className={cn(table.th, "text-right")}>
-                  Lãi/lỗ
-                </th>
-                <th scope="col" className={cn(table.th, "text-right")}>
-                  Tỷ trọng
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {cur.rows.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className={cn(table.td, "py-8 text-center text-subtle")}
-                  >
-                    Chưa nắm giữ tài sản nào trong nhóm này.{" "}
-                    <Link href={`/admin/transactions?cls=${tab}`}>
-                      Thêm giao dịch mua
-                    </Link>
-                  </td>
+        {positions && cur.rows.length > 0 ? (
+          <FundTable
+            caption={copy.caption}
+            rows={cur.rows}
+            positions={positions}
+          />
+        ) : (
+          <div className={table.wrap}>
+            <table className={cn(table.table, "min-w-[820px]")}>
+              <caption className="pt-3.5 pb-2 text-left text-base font-semibold">
+                {copy.caption}
+              </caption>
+              <thead>
+                <tr className={table.headRow}>
+                  <th scope="col" className={table.th}>
+                    Tài sản
+                  </th>
+                  <th scope="col" className={cn(table.th, "text-right")}>
+                    Số lượng
+                  </th>
+                  <th scope="col" className={cn(table.th, "text-right")}>
+                    Giá vốn TB
+                  </th>
+                  <th scope="col" className={cn(table.th, "text-right")}>
+                    Giá hiện tại
+                  </th>
+                  <th scope="col" className={cn(table.th, "text-right")}>
+                    Giá trị
+                  </th>
+                  <th scope="col" className={cn(table.th, "text-right")}>
+                    Lãi/lỗ
+                  </th>
+                  <th scope="col" className={cn(table.th, "text-right")}>
+                    Tỷ trọng
+                  </th>
                 </tr>
-              )}
-              {cur.rows.map((r) => {
-                const t = trend(r.pl);
-                const sub =
-                  tab === "stock"
-                    ? [r.instrument.name, r.instrument.exchange]
-                        .filter(Boolean)
-                        .join(" · ")
-                    : tab === "crypto"
-                      ? `${r.instrument.name} · ${r.accountNames.join(", ")}`
-                      : r.accountNames.join(", ");
-                return (
-                  <tr key={r.instrument.id}>
-                    <th scope="row" className={cn(table.td, "text-left")}>
-                      <span className="flex flex-col gap-0.5">
-                        <span className="font-bold">{r.instrument.symbol}</span>
-                        <span className="text-xs font-normal text-subtle">
-                          {sub}
-                        </span>
-                      </span>
-                    </th>
-                    <td className={cn(table.td, "text-right num")}>
-                      {formatHoldingQty(r.holding.quantity, r.instrument.unit)}
-                    </td>
-                    <td className={cn(table.td, "text-right text-subtle num")}>
-                      {formatInt(asPrice(r.avgCost))}
-                    </td>
-                    <td className={cn(table.td, "text-right num")}>
-                      {r.price === null ? (
-                        <span
-                          className="text-subtle"
-                          title="Chưa có giá — tạm tính theo giá vốn"
-                        >
-                          —
-                        </span>
-                      ) : (
-                        <span className="flex flex-col items-end gap-0.5">
-                          <span>{formatInt(asPrice(r.price))}</span>
-                          {r.priceMeta?.stale && (
-                            <span className="text-xs text-warn-ink">
-                              giá cũ
-                            </span>
-                          )}
-                        </span>
-                      )}
-                    </td>
+              </thead>
+              <tbody>
+                {cur.rows.length === 0 && (
+                  <tr>
                     <td
-                      className={cn(table.td, "text-right font-semibold num")}
+                      colSpan={7}
+                      className={cn(table.td, "py-8 text-center text-subtle")}
                     >
-                      {formatInt(r.marketValue)}
-                    </td>
-                    <td
-                      className={cn(
-                        table.td,
-                        "text-right font-semibold num",
-                        toneText[t.tone],
-                      )}
-                    >
-                      <span className="flex flex-col items-end gap-0.5">
-                        <span>{formatSignedInt(r.pl)}</span>
-                        <span className="text-xs">
-                          {t.arrow}{" "}
-                          {formatPct(r.plRatio, { digits: 1, signed: true })}
-                        </span>
-                      </span>
-                    </td>
-                    <td className={cn(table.td, "text-right")}>
-                      <span className="inline-flex items-center gap-2">
-                        <span
-                          aria-hidden="true"
-                          className="inline-block h-1.5 w-16 overflow-hidden rounded-[3px] bg-[#EEF0EC]"
-                        >
-                          <span
-                            className="block h-1.5 rounded-[3px]"
-                            style={{
-                              width: `${((r.weight ?? 0) * 100).toFixed(1)}%`,
-                              background: classColor[tab],
-                            }}
-                          />
-                        </span>
-                        <span className="min-w-11 num">
-                          {formatPct(r.weight, { digits: 1 })}
-                        </span>
-                      </span>
+                      Chưa nắm giữ tài sản nào trong nhóm này.{" "}
+                      <Link href={`/admin/transactions?cls=${tab}`}>
+                        Thêm giao dịch mua
+                      </Link>
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                )}
+                {cur.rows.map((r) => {
+                  const t = trend(r.pl);
+                  const sub =
+                    tab === "stock"
+                      ? [r.instrument.name, r.instrument.exchange]
+                          .filter(Boolean)
+                          .join(" · ")
+                      : tab === "crypto"
+                        ? `${r.instrument.name} · ${r.accountNames.join(", ")}`
+                        : r.accountNames.join(", ");
+                  return (
+                    <tr key={r.instrument.id}>
+                      <th scope="row" className={cn(table.td, "text-left")}>
+                        <span className="flex flex-col gap-0.5">
+                          <span className="font-bold">
+                            {r.instrument.symbol}
+                          </span>
+                          <span className="text-xs font-normal text-subtle">
+                            {sub}
+                          </span>
+                        </span>
+                      </th>
+                      <td className={cn(table.td, "text-right num")}>
+                        {formatHoldingQty(
+                          r.holding.quantity,
+                          r.instrument.unit,
+                        )}
+                      </td>
+                      <td
+                        className={cn(table.td, "text-right text-subtle num")}
+                      >
+                        {formatInt(asPrice(r.avgCost))}
+                      </td>
+                      <td className={cn(table.td, "text-right num")}>
+                        {r.price === null ? (
+                          <span
+                            className="text-subtle"
+                            title="Chưa có giá — tạm tính theo giá vốn"
+                          >
+                            —
+                          </span>
+                        ) : (
+                          <span className="flex flex-col items-end gap-0.5">
+                            <span>{formatInt(asPrice(r.price))}</span>
+                            {r.priceMeta?.stale && (
+                              <span className="text-xs text-warn-ink">
+                                giá cũ
+                              </span>
+                            )}
+                          </span>
+                        )}
+                      </td>
+                      <td
+                        className={cn(table.td, "text-right font-semibold num")}
+                      >
+                        {formatInt(r.marketValue)}
+                      </td>
+                      <td
+                        className={cn(
+                          table.td,
+                          "text-right font-semibold num",
+                          toneText[t.tone],
+                        )}
+                      >
+                        <span className="flex flex-col items-end gap-0.5">
+                          <span>{formatSignedInt(r.pl)}</span>
+                          <span className="text-xs">
+                            {t.arrow}{" "}
+                            {formatPct(r.plRatio, { digits: 1, signed: true })}
+                          </span>
+                        </span>
+                      </td>
+                      <td className={cn(table.td, "text-right")}>
+                        <span className="inline-flex items-center gap-2">
+                          <span
+                            aria-hidden="true"
+                            className="inline-block h-1.5 w-16 overflow-hidden rounded-[3px] bg-[#EEF0EC]"
+                          >
+                            <span
+                              className="block h-1.5 rounded-[3px]"
+                              style={{
+                                width: `${((r.weight ?? 0) * 100).toFixed(1)}%`,
+                                background: classColor[tab],
+                              }}
+                            />
+                          </span>
+                          <span className="min-w-11 num">
+                            {formatPct(r.weight, { digits: 1 })}
+                          </span>
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
         <p className="mt-3 mb-0 text-[13px] text-subtle">
           {copy.footnote} Đơn vị giá: {copy.priceUnit}.
         </p>

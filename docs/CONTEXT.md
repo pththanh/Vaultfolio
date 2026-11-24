@@ -3,13 +3,13 @@
 **Vaultfolio** (vault + portfolio): website quản lý tài sản cá nhân.
 
 > Tài liệu ngữ cảnh dự án: tổng hợp mục tiêu, phạm vi, kiến trúc và các quyết định đã chốt.
-> Cập nhật lần cuối: 2026-11-24 (thêm Sổ thu chi — mục 13)
+> Cập nhật lần cuối: 2026-11-24 (thêm Sổ thu chi — mục 13; Quỹ mở — mục 14)
 
 ---
 
 ## 1. Mục tiêu
 
-Website có **admin dashboard** để theo dõi và quản lý tài sản cá nhân gồm 4 loại:
+Website có **admin dashboard** để theo dõi và quản lý tài sản cá nhân gồm 5 loại:
 
 | Loại | Ví dụ |
 |---|---|
@@ -17,6 +17,7 @@ Website có **admin dashboard** để theo dõi và quản lý tài sản cá nh
 | Crypto | BTC, ETH, … |
 | Vàng | Vàng miếng SJC, nhẫn 9999 (theo từng tiệm) |
 | Tiết kiệm | Sổ tiết kiệm ngân hàng có kỳ hạn |
+| Quỹ mở *(thêm 2026-11-24)* | Chứng chỉ quỹ mua qua Fmarket (VMEEF, VCBF-AIF, …) — mục 14 |
 
 **Mở rộng P5 (2026-11-24): Sổ thu chi** — ghi chép thu chi hằng ngày theo hạng mục (Ăn uống, Đi lại, …) như Sổ thu chi MISA, quản lý **tiền mặt, tài khoản ngân hàng, ví điện tử, thẻ tín dụng, vay nợ** và đưa tất cả vào **tổng tài sản ròng**. Chi tiết ở **mục 13**.
 
@@ -49,6 +50,7 @@ Website có **admin dashboard** để theo dõi và quản lý tài sản cá nh
 | Chỉ số (VN-Index) | DNSE OpenAPI (`INDEX`) | — | 15:30, chỉ ngày giao dịch |
 | Crypto | **CoinGecko Demo API** | Binance public API | 07:00 |
 | Vàng | **Finhay Open API** (`/market/financial-data/gold`) | vnstock-js (BTMC/SJC) hoặc nhập tay | 16:00 (09:00 và 16:00 nếu dùng Vercel Pro) |
+| Quỹ mở (NAV) | **Fmarket public API** (không chính thức, mục 14.2) | Website công ty quản lý quỹ / nhập tay | 09:30 (NAV kỳ T đăng sáng T+1) |
 | Tỷ giá USD/VND | Vietcombank XML feed | AllRatesToday API | 07:00 |
 | Tiết kiệm | Không cần nguồn, tự tính | — | Tính lại hằng ngày |
 
@@ -111,6 +113,7 @@ PriceProvider (interface: getPrices(instruments, date) → PriceRow[])
  ├─ DnseStockProvider      → fallback: ManualProvider
  ├─ CoinGeckoProvider      → fallback: BinanceProvider
  ├─ FinhayGoldProvider     → fallback: VnstockJsGoldProvider / ManualProvider
+ ├─ FmarketFundProvider     → fallback: ManualProvider
  └─ VcbFxProvider          → fallback: AllRatesTodayProvider
 ```
 
@@ -177,6 +180,7 @@ Bảng của Sổ thu chi (`wallets`, `categories`, `cash_entries`, `budgets`, `
 | **P5b – Hạn mức & báo cáo** | Hạn mức chi theo hạng mục và cảnh báo, báo cáo thu chi (cơ cấu, xu hướng 12 tháng, so với trung bình), card thu chi trên Tổng quan, snapshot thêm tiền/nợ, export/import CSV |
 | **P5c – Vay nợ & tự động** | Cho vay/đi vay/thu nợ/trả nợ theo đối tượng, ghi chép định kỳ, chuyến đi/sự kiện, nhập dữ liệu cũ từ MISA |
 | **P5d – Dùng trên điện thoại** | PWA (thêm vào màn hình chính), tối ưu Ghi chép nhanh cho màn hẹp; tuỳ chọn ghi chép qua bot Telegram (gắn với P4) |
+| **P6 – Quỹ mở** | Loại tài sản `fund`, NAV từ Fmarket, lô mua + biểu phí bán theo thời gian nắm giữ, thuế theo quy tắc 2 năm, import lịch sử lệnh Fmarket. Xem mục 14 |
 
 ## 10. Bảo mật
 
@@ -196,6 +200,7 @@ Bảng của Sổ thu chi (`wallets`, `categories`, `cash_entries`, `budgets`, `
 - [x] Đọc danh mục và vị thế từ DNSE có cần OTP không? → **Không.** `GET /accounts`, `/accounts/{no}/positions?marketType=STOCK`, `/orders/history?marketType=STOCK&from&to` (yyyy-mm-dd, tối đa 1 năm về trước), `/corporate-action-history?caType&caStatus` chỉ cần API key + chữ ký. Giá ở các endpoint tài khoản tính bằng **đồng** (không × 1000). Order history không có phí/thuế (đã xác minh 2026-11-23)
 - [ ] Cách xin Finhay API key, giới hạn và phí
 - [x] Prisma hay Drizzle; Supabase hay Neon → **Drizzle + Neon** (2026-11-21)
+- [ ] **Quỹ mở:** cách đếm tháng của phí bán, thứ tự trừ lô khi bán (FIFO?) — mục 14.6
 - [ ] **Sổ thu chi:** các câu hỏi chờ xác nhận ở mục 13.8 (liên kết đầu tư, nhập dữ liệu MISA, ngoại tệ, chia sẻ với gia đình)
 
 ## 12. Nhật ký quyết định
@@ -239,6 +244,11 @@ Bảng của Sổ thu chi (`wallets`, `categories`, `cash_entries`, `budgets`, `
 | 2026-11-24 | CSV thu chi: phí chuyển khoản là cột `fee` của dòng chuyển khoản; import bỏ qua dòng tiết kiệm/vay nợ, xem trước + map ví/tài khoản/hạng mục, nhận diện dòng trùng, nhập tất cả hoặc không nhập gì |
 | 2026-11-24 | P5c: vay nợ ghi ở tab riêng, lãi là dòng thu/chi đi kèm khoản trả; không trả vượt số còn lại (khoá dòng). Định kỳ: rule tự ghi chạy trong job `snapshot`; rule bị chặn (ví lưu trữ, hạng mục ẩn) giữ nguyên kỳ và chờ xác nhận; tiếp tục sau tạm dừng thì bỏ các kỳ đã lỡ. CSV thêm cột `event`. Nhập MISA hoãn tới khi có file mẫu |
 | 2026-11-24 | P5d: PWA mở vào Sổ ghi chép; service worker chỉ cache `/_next/static`, `/icons` và trang offline (không cache trang, RSC, action, export); đăng nhập xong về đúng trang đã yêu cầu (`safeRedirect`, chỉ trong /admin); `docs/samples/` không commit |
+| 2026-11-24 | Thêm loại tài sản **quỹ mở** (P6). NAV lấy từ API công khai Fmarket (`/res/products/filter`, `/res/product/get-nav-history`, không cần key — đã thử 24/11/2026); đây là ngoại lệ có chủ đích với quy tắc 4.5 vì không có nguồn chính thức dạng API. Lịch sử lệnh lấy một lần từ tài khoản Fmarket của chủ sở hữu (23 lệnh mua, khớp số CCQ với Fmarket) |
+| 2026-11-24 | Quỹ mở: giá lưu theo 100 CCQ (số nguyên); phí bán đếm theo ngày dương lịch với toán tử từng quỹ; số liệu thật không vào repo; SIP để bước 19 |
+| 2026-11-24 | Bước 16 (P0 quỹ mở): Fmarket gọi được từ Node không cần key hay `Origin`/`Referer`; còn phải thử từ Vercel. Gộp tài liệu P6 vào bản hiện có, không thay cả file (bản P6 tách ra từ bản cũ hơn) |
+| 2026-11-24 | Bước 17: quỹ mở chỉ có giao dịch mua/bán; để trống phí/thuế khi bán thì tính theo lô FIFO, quỹ chưa có biểu phí thì bắt buộc nhập. Biểu phí đã biết được seed khi tạo instrument. Thuế/thời gian miễn ở `user_settings.fees`; mốc miễn thuế 01/07/2026 là hằng số. Import Fmarket: một lệnh trùng = cùng quỹ, ngày khớp, chiều, số CCQ; hai lệnh giống nhau trong file là hai lệnh. Màu Quỹ mở #8E3B7A |
+| 2026-11-24 | Bước 18: job `fund` (09:30) chỉ dùng `get-nav-history` (10 ngày gần nhất; backfill lấy toàn bộ), không gọi `filter` vì thừa. Nguồn lỗi hoặc 10 ngày không có NAV thì gắn `stale` vào NAV cuối, **không** chép sang hôm nay (bản chép sẽ che NAV đăng trễ). Mọi job hằng ngày: giá đọc lại không đổi thì giữ trạng thái đã duyệt. Biểu phí quỹ sửa trong Cài đặt theo ngày hiệu lực; seed mẫu có một quỹ với số liệu giả |
 
 ---
 
@@ -402,3 +412,74 @@ Sổ ghi chép và Ghi chép nhanh **thiết kế mobile-first** vì sẽ dùng 
 - [ ] ❓ **Dữ liệu cũ trên MISA:** có cần chuyển sang không? Cần một file xuất mẫu từ MISA để xác định cột (định dạng file xuất **chưa xác minh**).
 - [x] **Ngoại tệ** *(đã duyệt)*: có ví USD/tiền mặt ngoại tệ không? *Mặc định: P5a chỉ VND; ví ngoại tệ quy đổi theo `fx_rates` VCB làm sau.*
 - [x] *(đã duyệt: hoãn)* **Chia sẻ sổ với vợ/chồng/gia đình:** gắn với quyết định multi-user (mục 11). *Mặc định: hoãn.*
+
+---
+
+## 14. Quỹ mở (P6)
+
+> Chứng chỉ quỹ mở mua qua Fmarket. Hiện nắm giữ VMEEF (VinaCapital) và VCBF-AIF (Vietcombank), mua định kỳ từ 01/2025, chưa bán lần nào.
+> Trạng thái: **đề xuất 2026-11-24**; các endpoint ở 14.2 đã thử thật ngày 24/11/2026.
+
+### 14.1 Mô hình
+
+- `instruments.asset_class` thêm **`fund`**. Mỗi quỹ một instrument: `symbol` = mã Fmarket (`VMEEF`, `VCBF-AIF`), `provider_ref` = Fmarket product id (`68`, `82`), `unit` = `ccq`.
+- **Giá lưu theo 100 CCQ** (số nguyên VND): NAV 14.557,13 → `1455713`. Giữ quy tắc tiền là số nguyên (giống vàng lưu theo chỉ, VN-Index ×100); số lượng cũng lưu theo **trăm CCQ** (123,45 CCQ → `1.2345`) nên giá trị = làm tròn(số lượng × giá) như mọi loại khác. Hiển thị và CSV dùng CCQ và NAV/CCQ, số CCQ bỏ số 0 thừa, NAV NAV/CCQ 2 chữ số thập phân.
+- `accounts` thêm một tài khoản "Fmarket" (type `broker`). Tiền từ ví sang Fmarket là **chuyển khoản** (mục 13.2).
+- Giao dịch dùng `buy`/`sell` sẵn có. Số CCQ có 2 chữ số thập phân (vừa `numeric(30,8)`). Ghi theo **ngày khớp** (ngày phân bổ CCQ), không theo ngày đặt lệnh; lưu ngày đặt lệnh trong `note` hoặc cột phụ.
+- **Lô mua (lot):** mỗi lệnh mua là một lô, tính ra từ `transactions` (không lưu cứng). Giá vốn hiển thị vẫn là bình quân gia quyền; lô dùng để tính phí bán và thuế. Bán thì trừ lô theo **FIFO** (❓ cần xác nhận, mục 14.6).
+- Bảng mới **`fund_fee_schedules`**: `instrument_id, side (buy|sell), from_months, from_inclusive, fee_bps, effective_from` (bậc kết thúc khi bậc sau bắt đầu; `from_inclusive` = `>=`, ngược lại `>`). Seed từ dữ liệu Fmarket (14.3), sửa được trong Cài đặt.
+
+### 14.2 Nguồn NAV — Fmarket (không chính thức, không cần key)
+
+| Mục đích | Request | Ghi chú |
+|---|---|---|
+| NAV mới nhất mọi quỹ | `POST https://api.fmarket.vn/res/products/filter` body `{"types":["NEW_FUND","TRADING_FUND"],"issuerIds":[],"sortOrder":"DESC","sortField":"navTo6Months","page":1,"pageSize":100,"isIpo":false,"fundAssetTypes":[],"bondRemainPeriods":[],"searchField":"","isBuyByReward":false,"thirdAppIds":[]}` | `data.rows[]`: `id`, `shortName`, `nav`, `productNavChange.updateAt`. 73 quỹ (24/11/2026) |
+| Lịch sử NAV một quỹ | `POST https://api.fmarket.vn/res/product/get-nav-history` body `{"isAllData":0,"productId":68,"fromDate":"YYYYMMDD","toDate":"YYYYMMDD"}` (`isAllData:1` = toàn bộ) | `data[]`: `navDate` (yyyy-mm-dd), `nav`. Dùng cho backfill và để lấy **ngày NAV** thật |
+
+- Đã gọi thử từ trình duyệt ngày 24/11/2026: cả hai trả 200; NAV khớp CafeF (VMEEF 14.557,13, VCBF-AIF 10.092,94, kỳ 23/11).
+- Đã gọi thử từ **Node** trên máy local ngày 24/11/2026 (`npm run check:sources`): cả hai trả 200, header tối thiểu chỉ là `content-type: application/json`, không cần `Origin`/`Referer`. ⚠️ Chưa thử từ Vercel `sin1`.
+- 5 kỳ gần nhất (17–23/11) có `createdAt` lúc 16:09–16:47 giờ VN cùng ngày `navDate`, nhưng lúc chạy thử chiều tối 24/11 chưa có kỳ 24/11 → ❓ chưa rõ giờ đăng thật. Job đọc lại 10 ngày mỗi lần chạy nên kỳ đăng trễ vẫn được bù.
+- `GET /res/products/{id}` (không cần key) trả `productFeeList` gồm toán tử ranh giới và đơn vị `MONTH` của từng bậc phí bán: VMEEF `[0,12)`, `[12,24)`, `[24,∞)`; VCBF-AIF `[0,1]`, `(1,12]`, `(12,24]`, `(24,∞)`.
+- Lưu giá theo **`navDate`** chứ không theo ngày chạy job. Ngày không có NAV mới → định giá theo NAV gần nhất; nguồn lỗi hoặc quá 10 ngày không có NAV → cờ `stale` trên NAV cuối. Ngưỡng `needs_review` cho quỹ: **±10%**.
+- Job `fund` chạy 09:30 VN (cron `30 2 * * *`), gọi `get-nav-history` 10 ngày gần nhất cho từng quỹ để bù ngày còn thiếu.
+- Dự phòng: trang NAV của công ty quản lý quỹ (VinaCapital, VCBF) hoặc nhập tay. CafeF chỉ để đối chiếu thủ công.
+- Đây là **ngoại lệ có chủ đích** với mục 4.5 (endpoint không chính thức) vì không có nguồn NAV chính thức dạng API. Nếu Fmarket đổi API, job ghi lỗi và giá rơi về `stale`, không làm hỏng dữ liệu.
+- **Không** gọi API cần đăng nhập của Fmarket từ server (không lưu mật khẩu/token Fmarket — mục 10).
+
+### 14.3 Phí & thuế
+
+Biểu phí lấy từ dữ liệu sản phẩm Fmarket ngày 24/11/2026 (chương trình "Linh hoạt"):
+
+| Quỹ | Phí mua | Phí bán theo thời gian nắm giữ |
+|---|---|---|
+| VMEEF | 0% | `< 12` tháng: 2% · `12 – 24`: 1% · `>= 24`: 0% |
+| VCBF-AIF | 0% | `<= 1` tháng: 3% · `1 – 12`: 2% · `12 – 24`: 0,5% · `> 24`: 0% |
+
+Ký hiệu chép nguyên từ trang quỹ trên Fmarket (24/11/2026). Hai quỹ dùng ranh giới khác nhau: VMEEF giữ **đủ** 12/24 tháng là xuống bậc; VCBF-AIF phải giữ **quá** 12/24 tháng. Cách đếm tháng: theo **ngày dương lịch** — bậc thấp hơn áp dụng từ ngày kỷ niệm (VMEEF) hoặc ngày sau ngày kỷ niệm (VCBF-AIF); ngày 29–31 không có ở tháng đích thì lấy ngày cuối tháng. ❓ Chưa xác minh với màn hình bán (mục 14.6).
+
+- **Thuế TNCN khi bán:** từ 01/07/2026, nắm giữ **≥ 2 năm** kể từ ngày mua → 0%; dưới 2 năm → 0,1% trên giá trị bán. Tính theo từng lô.
+- Phí quản lý quỹ đã trừ vào NAV, không ghi riêng.
+- Tham số thuế (0,1%, 24 tháng) để trong `user_settings.fees` như phí/thuế cổ phiếu, không hard-code.
+
+### 14.4 Logic (`src/lib/calc/fund/`, hàm thuần, có unit test)
+
+- `fundLots(transactions)` → danh sách lô còn lại (FIFO khi bán), mỗi lô: ngày khớp, số CCQ, NAV mua, giá vốn.
+- `sellFee(lot, date, schedule)` theo số tháng nắm giữ; `sellTax(lot, date, value)` theo quy tắc 2 năm.
+- `fundPosition(lots, nav, date)` → số CCQ, giá vốn, **giá trị theo NAV**, **thực nhận nếu bán hôm nay** (trừ phí + thuế từng lô), lãi/lỗ cả hai cách, ngày lô gần nhất giảm bậc phí, ngày lô gần nhất hết phí và thuế.
+- Kiểm tra bằng dữ liệu thật: test trong repo dùng **số liệu giả**; tổng CCQ và vốn thật chỉ đối chiếu với file riêng `data/private/` (không commit).
+- Test ranh giới: lô tròn 12 tháng, 24 tháng; ngày 29–31 ở tháng ngắn.
+
+### 14.5 Màn hình
+
+- **Danh mục → tab Quỹ mở:** mỗi quỹ một dòng gồm số CCQ, giá vốn bình quân, NAV (kèm ngày NAV), giá trị, lãi/lỗ theo NAV, *thực nhận nếu bán hôm nay*. Mở rộng ra bảng lô: ngày khớp, CCQ, NAV mua, tháng nắm giữ, bậc phí hiện tại, ngày hết phí & thuế.
+- **Tổng quan:** biểu đồ phân bổ thêm nhóm "Quỹ mở"; % lợi nhuận đầu tư (Dietz) tính cả quỹ; snapshot thêm `fund`.
+- **Giao dịch → Import lịch sử Fmarket:** nhận CSV theo định dạng `order_date,match_date,fund,type,units,nav,value,fee,tax,program`, xem trước, map `fund` → instrument, bỏ qua dòng trùng (khoá: quỹ + ngày khớp + số CCQ).
+- **Mua định kỳ (SIP)** — để bước 19, sau P5c: dùng `recurring_rules` (mục 13) sinh nhắc "chờ xác nhận"; khi xác nhận nhập số CCQ thực khớp → tạo `buy` + chuyển khoản từ ví.
+
+### 14.6 Câu hỏi mở
+
+- [x] Toán tử ranh giới phí: đọc được trên trang quỹ Fmarket (14.3) — VMEEF `>=`, VCBF-AIF `>`.
+- [ ] ❓ Đếm tháng theo ngày dương lịch hay theo **số tháng tròn**? Nếu Fmarket đếm tháng tròn, với VCBF-AIF bậc 0,5% chỉ áp dụng từ tháng thứ 13. *Mặc định: ngày dương lịch.* Xác minh khi bán lần đầu: so phí ước tính trên màn hình bán với số Vaultfolio tính.
+- [ ] ❓ Khi bán một phần, quỹ trừ lô theo **FIFO**? *Mặc định: FIFO; đối chiếu với xác nhận lệnh bán đầu tiên.*
+- [ ] ❓ Ngày bắt đầu tính 2 năm cho thuế: ngày khớp hay ngày đặt lệnh? *Mặc định: ngày khớp (ngày phân bổ CCQ).*
+- [ ] Cập nhật lịch sử lệnh về sau: nhập tay từng lệnh mới, hoặc import lại CSV (xuất từ "Sổ Lệnh → Lệnh đã khớp → Tải báo cáo", tối đa 180 ngày mỗi lần).

@@ -3,9 +3,12 @@ import Link from "next/link";
 import { PageHeader, buttonClass, table } from "@/components/vf/ui";
 import { inputClass } from "@/components/vf/form";
 import { parseDecimal } from "@/lib/calc/decimal";
+import { FUND_CATALOG } from "@/lib/calc/fund/catalog";
+import { fromHundreds } from "@/lib/calc/fund/units";
 import {
   formatDate,
   formatInt,
+  formatNav,
   formatQty,
   formatSignedInt,
   todayVN,
@@ -14,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { buildActivity, type BadgeKind } from "@/server/activity";
 import { loadPortfolio } from "@/server/portfolio";
 import { requireUser } from "@/server/session";
+import { FundImportDialog } from "./fund-import-dialog";
 import { ImportButton } from "./import-button";
 import { TxForm, type FormClass, type TxInitial } from "./tx-form";
 
@@ -24,6 +28,7 @@ const PAGE_SIZE = 15;
 const FILTERS = [
   ["all", "Tất cả"],
   ["stock", "Cổ phiếu"],
+  ["fund", "Quỹ mở"],
   ["crypto", "Crypto"],
   ["gold", "Vàng"],
   ["savings", "Tiết kiệm"],
@@ -76,8 +81,16 @@ export default async function TransactionsPage({
     type: editRow.tx.type,
     accountId: editRow.tx.accountId,
     asset: editRow.instrument.symbol,
-    quantity: formatQty(parseDecimal(editRow.tx.quantity)).replace(/^0$/, ""),
-    price: editRow.tx.price ? formatInt(editRow.tx.price) : "",
+    quantity: formatQty(
+      editRow.instrument.assetClass === "fund"
+        ? fromHundreds(parseDecimal(editRow.tx.quantity))
+        : parseDecimal(editRow.tx.quantity),
+    ).replace(/^0$/, ""),
+    price: !editRow.tx.price
+      ? ""
+      : editRow.instrument.assetClass === "fund"
+        ? formatNav(editRow.tx.price)
+        : formatInt(editRow.tx.price),
     fee: formatInt(editRow.tx.fee),
     tax: formatInt(editRow.tx.tax),
     tradeDate: editRow.tx.tradeDate,
@@ -88,15 +101,20 @@ export default async function TransactionsPage({
     stock: [] as string[],
     crypto: [] as string[],
     gold: [] as string[],
+    fund: [] as string[],
   };
   for (const i of p.instruments.values()) {
     if (
       i.assetClass === "stock" ||
       i.assetClass === "crypto" ||
-      i.assetClass === "gold"
+      i.assetClass === "gold" ||
+      i.assetClass === "fund"
     )
       symbols[i.assetClass].push(i.symbol);
   }
+  const fundSymbols = [
+    ...new Set([...Object.keys(FUND_CATALOG), ...symbols.fund]),
+  ];
   const defaultCls: FormClass = cls === "all" ? "stock" : (cls as FormClass);
   const from = filtered.length ? (page - 1) * PAGE_SIZE + 1 : 0;
 
@@ -108,6 +126,7 @@ export default async function TransactionsPage({
         actions={
           <>
             <ImportButton />
+            <FundImportDialog funds={fundSymbols} />
             <a
               href="/admin/transactions/export"
               download
@@ -346,7 +365,7 @@ export default async function TransactionsPage({
             name: a.name,
             type: a.type,
           }))}
-          symbols={symbols}
+          symbols={{ ...symbols, fund: fundSymbols }}
           fees={p.fees}
           today={todayVN()}
           defaultCls={defaultCls}

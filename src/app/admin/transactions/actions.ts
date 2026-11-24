@@ -12,10 +12,18 @@ import {
   parseViNumber,
   qtyToString,
 } from "@/lib/calc/decimal";
+import { scaledNavToPrice, toHundreds } from "@/lib/calc/fund/units";
 import { tradeCharges } from "@/lib/calc/fees";
 import { TX_TYPES } from "@/lib/calc/types";
 import { todayVN } from "@/lib/format";
 import { parseTransactionsCsv } from "@/lib/csv";
+import {
+  fundImportOptionsSchema,
+  importFundCsv,
+  previewFundCsv,
+  type FundImportPreview,
+} from "@/server/fund-import";
+import { fundCharges } from "@/server/funds";
 import {
   LedgerError,
   assertConsistent,
@@ -71,13 +79,14 @@ const txSchema = z.object({
     .uuid()
     .optional()
     .or(z.literal("").transform(() => undefined)),
-  cls: z.enum(["stock", "crypto", "gold"]),
+  cls: z.enum(["stock", "fund", "crypto", "gold"]),
   type: z.enum(TX_TYPES),
   accountId: z.string().min(1, "Chọn tài khoản"),
   newAccount: z.string().trim().optional().default(""),
   asset: z.string().trim().min(1, "Nhập mã tài sản"),
   quantity: viQty,
-  price: viMoneyOpt,
+  /** Read per class: whole đồng, or a NAV with two decimals for funds. */
+  price: z.string().trim().optional().default(""),
   fee: viMoneyOpt,
   tax: viMoneyOpt,
   tradeDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Ngày không hợp lệ"),
@@ -119,11 +128,24 @@ export async function saveTransaction(
   const d = parsed.data;
 
   // Quantity is the unit count, except standalone fees which only carry an amount.
-  const price = d.price ?? 0n;
+  const isFund = d.cls === "fund";
+  let price: bigint;
+  try {
+    price = !d.price
+      ? 0n
+      : isFund
+        ? scaledNavToPrice(parseViNumber(d.price))
+        : parseViMoney(d.price);
+  } catch {
+    return { error: `Giá không hợp lệ: "${d.price}"` };
+  }
+  const quantity = isFund ? toHundreds(d.quantity) : d.quantity;
+  if (isFund && d.type !== "buy" && d.type !== "sell")
+    return { error: "Quỹ mở chỉ có giao dịch mua và bán" };
   const needsQty = d.type !== "fee";
   const needsPrice =
     d.type === "buy" || d.type === "sell" || d.type === "dividend_cash";
-  if (needsQty && d.quantity <= 0n) return { error: "Số lượng phải lớn hơn 0" };
+  if (needsQty && quantity <= 0n) return { error: "Số lượng phải lớn hơn 0" };
   if (needsPrice && price <= 0n) return { error: "Giá phải lớn hơn 0" };
   if (d.type === "fee" && (d.fee ?? 0n) <= 0n)
     return { error: "Nhập số tiền phí" };
@@ -131,8 +153,8 @@ export async function saveTransaction(
     return { error: "Ngày giao dịch không được ở tương lai" };
 
   const fees = await getFeeConfig(user.id);
-  const gross = mulQty(d.quantity, price);
-  const auto = tradeCharges(d.cls, d.type, gross, fees);
+  const gross = mulQty(quantity, price);
+  let auto = tradeCharges(d.cls, d.type, gross, fees);
 
   try {
     await db.transaction(async (tx) => {
@@ -146,11 +168,20 @@ export async function saveTransaction(
         throw new LedgerError("Tài khoản không tồn tại");
       }
       const instrument = await findOrCreateInstrument(tx, d.cls, d.asset);
+      if (isFund && (d.fee === null || d.tax === null))
+        auto = await fundCharges(tx, user.id, instrument.id, {
+          type: d.type === "sell" ? "sell" : "buy",
+          quantity,
+          price,
+          date: d.tradeDate,
+          excludeId: d.id,
+          fees,
+        });
       const values = {
         accountId,
         instrumentId: instrument.id,
         type: d.type,
-        quantity: qtyToString(needsQty ? d.quantity : 0n),
+        quantity: qtyToString(needsQty ? quantity : 0n),
         price: needsPrice ? price : 0n,
         fee: d.fee ?? auto.fee,
         tax: d.tax ?? auto.tax,
@@ -250,4 +281,42 @@ export async function importTransactions(
     return fail(err);
   }
   return done(`Đã nhập ${rows.length} giao dịch`);
+}
+
+// ——— Fmarket order history ————————————————————————————————————
+
+async function fundCsvText(fd: FormData): Promise<string> {
+  const file = fd.get("file");
+  if (!(file instanceof File) || file.size === 0)
+    throw new LedgerError("Chọn file CSV");
+  if (file.size > MAX_IMPORT_BYTES)
+    throw new LedgerError("File quá lớn (tối đa 2 MB)");
+  return file.text();
+}
+
+export async function previewFundAction(
+  fd: FormData,
+): Promise<{ preview: FundImportPreview } | { error: string }> {
+  const user = await requireUser();
+  try {
+    return { preview: await previewFundCsv(user.id, await fundCsvText(fd)) };
+  } catch (err) {
+    return { error: fail(err).error! };
+  }
+}
+
+export async function importFundAction(fd: FormData): Promise<FormState> {
+  const user = await requireUser();
+  try {
+    const options = fundImportOptionsSchema.parse(
+      JSON.parse(String(fd.get("options") ?? "{}")),
+    );
+    const r = await importFundCsv(user.id, await fundCsvText(fd), options);
+    return done(
+      `Đã nhập ${r.imported} lệnh quỹ${r.duplicates ? `, bỏ qua ${r.duplicates} lệnh trùng` : ""}`,
+    );
+  } catch (err) {
+    if (err instanceof SyntaxError) return { error: "Dữ liệu không hợp lệ" };
+    return fail(err);
+  }
 }

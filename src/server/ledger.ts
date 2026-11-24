@@ -3,21 +3,24 @@ import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import {
   accounts,
+  fundFeeSchedules,
   instruments,
   transactions,
   type Account,
   type Instrument,
   type Transaction,
 } from "@/db/schema";
+import { CATALOG_EFFECTIVE_FROM, FUND_CATALOG } from "@/lib/calc/fund/catalog";
 import { CalcError, computeHoldings } from "@/lib/calc/holdings";
 import { formatDate } from "@/lib/format";
 import { toCalcTx } from "./portfolio";
 
 type Db = Pick<typeof db, "select" | "insert" | "update" | "delete" | "query">;
-export type MarketClass = "stock" | "crypto" | "gold";
+export type MarketClass = "stock" | "fund" | "crypto" | "gold";
 
 const ACCOUNT_TYPE: Record<MarketClass | "savings", Account["type"]> = {
   stock: "broker",
+  fund: "broker",
   crypto: "exchange",
   gold: "physical",
   savings: "bank",
@@ -25,6 +28,7 @@ const ACCOUNT_TYPE: Record<MarketClass | "savings", Account["type"]> = {
 
 const UNIT: Record<MarketClass, string> = {
   stock: "share",
+  fund: "ccq",
   crypto: "coin",
   gold: "chi",
 };
@@ -74,16 +78,28 @@ export async function findOrCreateInstrument(
     where: and(eq(instruments.assetClass, cls), eq(instruments.symbol, symbol)),
   });
   if (existing) return existing;
+  const fund = cls === "fund" ? FUND_CATALOG[symbol] : undefined;
   const [created] = await tx
     .insert(instruments)
     .values({
       assetClass: cls,
       symbol,
-      name: symbol,
+      name: fund?.name ?? symbol,
       unit: UNIT[cls],
-      providerRef: cls === "stock" ? symbol : null,
+      providerRef: cls === "stock" ? symbol : (fund?.providerRef ?? null),
     })
     .returning();
+  if (fund)
+    await tx.insert(fundFeeSchedules).values(
+      (["buy", "sell"] as const).flatMap((side) =>
+        fund[side].map((t) => ({
+          ...t,
+          instrumentId: created.id,
+          side,
+          effectiveFrom: CATALOG_EFFECTIVE_FROM,
+        })),
+      ),
+    );
   return created;
 }
 
