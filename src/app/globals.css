@@ -1,26 +1,124 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@custom-variant dark (&:is(.dark *));
+
+/* Vaultfolio design tokens (docs/design, CLAUDE.md) */
+@theme {
+  --color-canvas: #f4f5f2;
+  --color-surface: #ffffff;
+  --color-line: #e3e5e0;
+  --color-line-soft: #f0f1ee;
+  --color-field: #d5d8d1;
+  --color-chip: #f1f2ef;
+  --color-well: #f7f8f5;
+  --color-ink: #16181d;
+  --color-ink-2: #3f4550;
+  --color-subtle: #5b6270;
+  --color-faint: #8a909b;
+  --color-brand: #2547b8;
+  --color-brand-soft: #eef1fb;
+  --color-brand-ink: #1a3489;
+  --color-gain: #0b7a47;
+  --color-gain-bright: #7fe0ae;
+  --color-loss: #c0352b;
+  --color-ok-bg: #e8f5ee;
+  --color-ok-ink: #0b5e37;
+  --color-warn-bg: #fff0dc;
+  --color-warn-ink: #8a4b00;
+  --color-err-bg: #fdeeea;
+  --color-err-ink: #9a2a1f;
+  --color-class-stock: #2547b8;
+  --color-class-savings: #6fa8dc;
+  --color-class-gold: #d4a017;
+  --color-class-crypto: #9a4d0e;
+  --radius-card: 14px;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-be-vietnam), system-ui, sans-serif;
+  --font-heading: var(--font-be-vietnam), system-ui, sans-serif;
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* shadcn/ui tokens mapped onto the design palette (light only, per design) */
+:root {
+  --background: #f4f5f2;
+  --foreground: #16181d;
+  --card: #ffffff;
+  --card-foreground: #16181d;
+  --popover: #ffffff;
+  --popover-foreground: #16181d;
+  --primary: #16181d;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f2ef;
+  --secondary-foreground: #16181d;
+  --muted: #f1f2ef;
+  --muted-foreground: #5b6270;
+  --accent: #eef1fb;
+  --accent-foreground: #1a3489;
+  --destructive: #c0352b;
+  --border: #e3e5e0;
+  --input: #d5d8d1;
+  --ring: #2547b8;
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-canvas text-ink;
+  }
+  html {
+    @apply font-sans;
+  }
+  a {
+    color: var(--color-brand);
+  }
+  a:hover {
+    color: var(--color-brand-ink);
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@utility num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Flex summaries lose the native disclosure triangle. */
+summary.flex::before {
+  content: "▸";
+  margin-right: 6px;
+  color: var(--color-subtle);
+}
+details[open] > summary.flex::before {
+  content: "▾";
 }

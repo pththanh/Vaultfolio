@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Giá và dữ liệu</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Be Vietnam Pro',system-ui,sans-serif;color:#16181D;background:#F4F5F2}
+a{color:#2547B8}a:hover{color:#1A3489}
+.num{font-variant-numeric:tabular-nums}
+input{font:inherit}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: #F4F5F2; font-family: 'Be Vietnam Pro', system-ui, sans-serif; color: #16181D">
+
+  <nav aria-label="Điều hướng chính" style="flex: 1 1 220px; box-sizing: border-box; background: #FFFFFF; border-right: 1px solid #E3E5E0; padding: 24px 16px; display: flex; flex-direction: column; gap: 4px">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 4px 12px 24px">
+      <div aria-hidden="true" style="width: 32px; height: 32px; border-radius: 8px; background: #16181D; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px">V</div>
+      <span style="font-weight: 700; font-size: 17px">Vaultfolio</span>
+    </div>
+    <a href="Main.dc.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #3F4550; font-weight: 500; font-size: 14px; text-decoration: none">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg>
+      Tổng quan</a>
+    <a href="Portfolio.dc.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #3F4550; font-weight: 500; font-size: 14px; text-decoration: none">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><path d="M7 15l4-4 3 3 5-6"></path></svg>
+      Danh mục</a>
+    <a href="Transactions.dc.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #3F4550; font-weight: 500; font-size: 14px; text-decoration: none">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16"></path><path d="M3 8l4-4 4 4"></path><path d="M17 20V4"></path><path d="M21 16l-4 4-4-4"></path></svg>
+      Giao dịch</a>
+    <a href="Savings.dc.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #3F4550; font-weight: 500; font-size: 14px; text-decoration: none">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10l9-6 9 6"></path><path d="M5 10v9h14v-9"></path><path d="M9 19v-5h6v5"></path></svg>
+      Tiết kiệm</a>
+    <a href="Prices.dc.html" aria-current="page" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 8px; background: #EEF1FB; color: #1A3489; font-weight: 600; font-size: 14px; text-decoration: none">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"></path><path d="M21 4v5h-5"></path></svg>
+      Giá &amp; dữ liệu</a>
+  </nav>
+
+  <main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 32px 40px 48px; display: flex; flex-direction: column; gap: 24px">
+
+    <header style="display: flex; flex-direction: column; gap: 6px">
+      <h1 style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.01em">Giá &amp; dữ liệu</h1>
+      <p style="margin: 0; font-size: 14px; color: #5B6270">Giá công khai được lấy theo lịch và dùng chung. Nguồn lỗi sẽ chuyển sang nguồn dự phòng hoặc nhập tay.</p>
+    </header>
+
+    <section aria-label="Nguồn giá" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px">
+      <sc-for list="{{ sources }}" as="s" hint-placeholder-count="4">
+        <article style="background: #FFFFFF; border: 1px solid #E3E5E0; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px">
+            <div style="display: flex; flex-direction: column; gap: 2px">
+              <span style="font-size: 12px; color: #5B6270; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em">{{ s.kind }}</span>
+              <h2 style="margin: 0; font-size: 16px; font-weight: 700">{{ s.name }}</h2>
+            </div>
+            <span style="{{ s.statusStyle }}">{{ s.status }}</span>
+          </div>
+          <dl style="margin: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13px">
+            <div style="display: flex; justify-content: space-between; gap: 8px"><dt style="color: #5B6270">Lần chạy cuối</dt><dd class="num" style="margin: 0; font-weight: 600">{{ s.last }}</dd></div>
+            <div style="display: flex; justify-content: space-between; gap: 8px"><dt style="color: #5B6270">Lịch</dt><dd style="margin: 0; font-weight: 600">{{ s.schedule }}</dd></div>
+            <div style="display: flex; justify-content: space-between; gap: 8px"><dt style="color: #5B6270">Số mã</dt><dd class="num" style="margin: 0; font-weight: 600">{{ s.count }}</dd></div>
+            <div style="display: flex; justify-content: space-between; gap: 8px"><dt style="color: #5B6270">Dự phòng</dt><dd style="margin: 0; font-weight: 600; text-align: right">{{ s.fallback }}</dd></div>
+          </dl>
+          <button type="button" onClick="{{ s.run }}" style="min-height: 44px; border: 1px solid #D5D8D1; border-radius: 8px; background: #FFFFFF; color: #16181D; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer">{{ s.runLabel }}</button>
+        </article>
+      </sc-for>
+    </section>
+
+    <section style="background: #FFFFFF; border: 1px solid #E3E5E0; border-radius: 14px; padding: 20px 22px; display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px">
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <h2 style="margin: 0; font-size: 16px; font-weight: 600">Giá cần xem lại</h2>
+          <span style="font-size: 13px; color: #5B6270">Biến động hơn ±15% so với phiên trước, hoặc ngoài biên độ trần/sàn. Chưa áp dụng vào danh mục.</span>
+        </div>
+        <span class="num" style="font-size: 13px; font-weight: 600; color: #8A4B00; background: #FFF0DC; border-radius: 999px; padding: 4px 10px">{{ reviewCount }}</span>
+      </div>
+      <sc-if value="{{ hasReview }}" hint-placeholder-val="{{ true }}">
+        <div style="overflow-x: auto">
+          <table style="width: 100%; border-collapse: collapse; font-size: 14px; min-width: 760px">
+            <thead>
+              <tr style="text-align: left; color: #5B6270; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em">
+                <th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E3E5E0">Tài sản</th>
+                <th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E3E5E0; text-align: right">Giá trước</th>
+                <th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E3E5E0; text-align: right">Giá mới</th>
+                <th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E3E5E0; text-align: right">Thay đổi</th>
+                <th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E3E5E0">Lý do</th>
+                <th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E3E5E0; text-align: right">Xử lý</th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{ review }}" as="r" hint-placeholder-count="2">
+                <tr>
+                  <th scope="row" style="padding: 12px 8px; border-bottom: 1px solid #F0F1EE; text-align: left">
+                    <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 700">{{ r.asset }}</span><span style="font-size: 12px; font-weight: 400; color: #5B6270">{{ r.source }}</span></span>
+                  </th>
+                  <td class="num" style="padding: 12px 8px; border-bottom: 1px solid #F0F1EE; text-align: right; color: #5B6270">{{ r.prev }}</td>
+                  <td class="num" style="padding: 12px 8px; border-bottom: 1px solid #F0F1EE; text-align: right; font-weight: 600">{{ r.next }}</td>
+                  <td class="num" style="padding: 12px 8px; border-bottom: 1px solid #F0F1EE; text-align: right; font-weight: 600; color: #9A2A1F">{{ r.change }}</td>
+                  <td style="padding: 12px 8px; border-bottom: 1px solid #F0F1EE; color: #3F4550; font-size: 13px">{{ r.reason }}</td>
+                  <td style="padding: 12px 8px; border-bottom: 1px solid #F0F1EE; text-align: right">
+                    <span style="display: inline-flex; gap: 8px">
+                      <button type="button" onClick="{{ r.accept }}" style="min-height: 40px; padding: 0 12px; border: 0; border-radius: 8px; background: #16181D; color: #FFFFFF; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer">Áp dụng</button>
+                      <button type="button" onClick="{{ r.reject }}" style="min-height: 40px; padding: 0 12px; border: 1px solid #D5D8D1; border-radius: 8px; background: #FFFFFF; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer">Nhập tay</button>
+                    </span>
+                  </td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </sc-if>
+      <sc-if value="{{ noReview }}" hint-placeholder-val="{{ false }}">
+        <p style="margin: 0; padding: 16px; background: #F0F8F3; border-radius: 10px; font-size: 14px; color: #0B5E37; font-weight: 600">Không còn giá nào cần xem lại.</p>
+      </sc-if>
+    </section>
+
+    <section style="background: #FFFFFF; border: 1px solid #E3E5E0; border-radius: 14px; padding: 20px 22px; display: flex; flex-direction: column; gap: 12px">
+      <h2 style="margin: 0; font-size: 16px; font-weight: 600">Nhật ký chạy job</h2>
+      <div style="overflow-x: auto">
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px; min-width: 680px">
+          <thead>
+            <tr style="text-align: left; color: #5B6270; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em">
+              <th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E3E5E0">Thời gian</th>
+              <th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E3E5E0">Job</th>
+              <th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E3E5E0">Kết quả</th>
+              <th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E3E5E0">Chi tiết</th>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{ logs }}" as="l" hint-placeholder-count="6">
+              <tr>
+                <td class="num" style="padding: 11px 8px; border-bottom: 1px solid #F0F1EE; color: #5B6270; white-space: nowrap">{{ l.time }}</td>
+                <td style="padding: 11px 8px; border-bottom: 1px solid #F0F1EE; font-weight: 600">{{ l.job }}</td>
+                <td style="padding: 11px 8px; border-bottom: 1px solid #F0F1EE"><span style="{{ l.style }}">{{ l.result }}</span></td>
+                <td style="padding: 11px 8px; border-bottom: 1px solid #F0F1EE; color: #3F4550; font-size: 13px">{{ l.detail }}</td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { done: {}, ran: {} };
+  }
+  renderVals() {
+    var self = this;
+    function pill(kind) {
+      var m = { ok: ['#E8F5EE', '#0B5E37'], warn: ['#FFF0DC', '#8A4B00'], err: ['#FDEEEA', '#9A2A1F'], idle: ['#F1F2EF', '#3F4550'] };
+      return 'font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; white-space: nowrap; background: ' + m[kind][0] + '; color: ' + m[kind][1];
+    }
+    var srcs = [
+      { id: 'dnse', kind: 'Cổ phiếu VN', name: 'DNSE OpenAPI', status: 'Bình thường', st: 'ok', last: 'T6 20/11 · 15:32', schedule: '15:30 ngày giao dịch', count: '4 mã + VN-Index', fallback: 'Nhập tay' },
+      { id: 'cg', kind: 'Crypto', name: 'CoinGecko Demo', status: 'Bình thường', st: 'ok', last: 'T7 21/11 · 07:00', schedule: '07:00 hằng ngày', count: '2 coin', fallback: 'Binance public' },
+      { id: 'fh', kind: 'Vàng', name: 'Finhay Open API', status: 'Có giá cần xem', st: 'warn', last: 'T7 21/11 · 09:00', schedule: '09:00 và 16:00', count: '2 loại', fallback: 'vnstock-js / nhập tay' },
+      { id: 'vcb', kind: 'Tỷ giá', name: 'Vietcombank XML', status: 'Bình thường', st: 'ok', last: 'T7 21/11 · 07:00', schedule: '07:00 hằng ngày', count: 'USD/VND', fallback: 'AllRatesToday' }
+    ];
+    var sources = srcs.map(function (s) {
+      var ran = !!self.state.ran[s.id];
+      return { kind: s.kind, name: s.name, status: s.status, statusStyle: pill(s.st), last: s.last, schedule: s.schedule, count: s.count, fallback: s.fallback,
+        runLabel: ran ? 'Đã xếp hàng chạy lại ✓' : 'Chạy lại ngay',
+        run: function () { var r = Object.assign({}, self.state.ran); r[s.id] = true; self.setState({ ran: r }); } };
+    });
+    var items = [
+      { id: 'r1', asset: 'Nhẫn tròn 9999 · BTMC', source: 'Finhay · 21/11 09:00', prev: '153.000.000', next: '128.500.000', change: '▼ −16,0%', reason: 'Lệch hơn 15%; các tiệm khác không biến động tương tự' },
+      { id: 'r2', asset: 'Miếng SJC · DOJI', source: 'Finhay · 21/11 09:00', prev: '146.500.000', next: '0', change: '—', reason: 'Nguồn trả giá 0 (có thể chưa cập nhật)' }
+    ];
+    var review = items.filter(function (r) { return !self.state.done[r.id]; }).map(function (r) {
+      function mark() { var d = Object.assign({}, self.state.done); d[r.id] = true; self.setState({ done: d }); }
+      return Object.assign({}, r, { accept: mark, reject: mark });
+    });
+    return {
+      sources: sources,
+      review: review,
+      hasReview: review.length > 0,
+      noReview: review.length === 0,
+      reviewCount: review.length + ' mục',
+      logs: [
+        { time: '21/11 15:30', job: 'Cổ phiếu VN', result: 'Bỏ qua', style: pill('idle'), detail: 'Thứ Bảy, không có phiên giao dịch (working dates)' },
+        { time: '21/11 09:00', job: 'Giá vàng', result: 'Cảnh báo', style: pill('warn'), detail: '2 giá bị giữ lại để xem xét; giá cũ được dùng tạm (stale)' },
+        { time: '21/11 07:00', job: 'Crypto', result: 'Thành công', style: pill('ok'), detail: '1 lượt gọi /simple/price · 2 coin · vs_currencies=vnd,usd' },
+        { time: '21/11 07:00', job: 'Tỷ giá', result: 'Thành công', style: pill('ok'), detail: 'USD/VND chuyển khoản' },
+        { time: '20/11 15:32', job: 'Cổ phiếu VN', result: 'Thành công', style: pill('ok'), detail: 'OHLC 1D · 5 mã · đã quy đổi nghìn đồng × 1.000' },
+        { time: '20/11 15:30', job: 'Cổ phiếu VN', result: 'Thử lại', style: pill('err'), detail: '429 Too Many Requests · Retry-After 2s · thành công ở lần 2' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

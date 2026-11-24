@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Tổng quan tài sản</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Be Vietnam Pro',system-ui,sans-serif;color:#16181D;background:#F4F5F2}
+a{color:#2547B8}a:hover{color:#1A3489}
+.num{font-variant-numeric:tabular-nums}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: #F4F5F2; font-family: 'Be Vietnam Pro', system-ui, sans-serif; color: #16181D">
+
+  <nav aria-label="Điều hướng chính" style="flex: 1 1 220px; box-sizing: border-box; background: #FFFFFF; border-right: 1px solid #E3E5E0; padding: 24px 16px; display: flex; flex-direction: column; gap: 4px">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 4px 12px 24px">
+      <div aria-hidden="true" style="width: 32px; height: 32px; border-radius: 8px; background: #16181D; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px">V</div>
+      <span style="font-weight: 700; font-size: 17px">Vaultfolio</span>
+    </div>
+    <a href="Main.dc.html" aria-current="page" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 8px; background: #EEF1FB; color: #1A3489; font-weight: 600; font-size: 14px; text-decoration: none">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg>
+      Tổng quan</a>
+    <a href="Portfolio.dc.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #3F4550; font-weight: 500; font-size: 14px; text-decoration: none">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><path d="M7 15l4-4 3 3 5-6"></path></svg>
+      Danh mục</a>
+    <a href="Transactions.dc.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #3F4550; font-weight: 500; font-size: 14px; text-decoration: none">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16"></path><path d="M3 8l4-4 4 4"></path><path d="M17 20V4"></path><path d="M21 16l-4 4-4-4"></path></svg>
+      Giao dịch</a>
+    <a href="Savings.dc.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #3F4550; font-weight: 500; font-size: 14px; text-decoration: none">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10l9-6 9 6"></path><path d="M5 10v9h14v-9"></path><path d="M9 19v-5h6v5"></path></svg>
+      Tiết kiệm</a>
+    <a href="Prices.dc.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #3F4550; font-weight: 500; font-size: 14px; text-decoration: none">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"></path><path d="M21 4v5h-5"></path></svg>
+      Giá &amp; dữ liệu</a>
+    <a href="#" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #3F4550; font-weight: 500; font-size: 14px; text-decoration: none">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>
+      Cài đặt</a>
+  </nav>
+
+  <main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 32px 40px 48px; display: flex; flex-direction: column; gap: 24px">
+
+    <header style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <div style="display: flex; align-items: center; gap: 10px">
+          <h1 style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.01em">Tổng quan</h1>
+          <span style="font-size: 12px; font-weight: 600; color: #6B4E00; background: #FFF3CC; border-radius: 999px; padding: 3px 10px">Dữ liệu mẫu</span>
+        </div>
+        <p style="margin: 0; font-size: 14px; color: #5B6270">Thứ Bảy, 21/11/2026 · Giá được cập nhật theo lịch, không realtime</p>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 12px">
+        <a href="Prices.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 8px; border: 1px solid #D5D8D1; background: #FFFFFF; color: #16181D; font-size: 14px; font-weight: 600; text-decoration: none">Xem trạng thái giá</a>
+        <a href="Transactions.dc.html" style="display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; border-radius: 8px; background: #16181D; color: #FFFFFF; font-size: 14px; font-weight: 600; text-decoration: none">
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+          Thêm giao dịch</a>
+      </div>
+    </header>
+
+    <section aria-label="Chỉ số chính" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px">
+      <div style="background: #16181D; color: #FFFFFF; border-radius: 14px; padding: 20px 22px; display: flex; flex-direction: column; gap: 10px">
+        <span style="font-size: 13px; color: #C9CDD4; font-weight: 500">Tài sản ròng</span>
+        <span class="num" style="font-size: 28px; font-weight: 700; letter-spacing: -0.01em">2.486.500.000 ₫</span>
+        <span class="num" style="font-size: 13px; color: #7FE0AE; font-weight: 600">▲ +12.400.000 ₫ (+0,50%) hôm nay</span>
+      </div>
+      <div style="background: #FFFFFF; border: 1px solid #E3E5E0; border-radius: 14px; padding: 20px 22px; display: flex; flex-direction: column; gap: 10px">
+        <span style="font-size: 13px; color: #5B6270; font-weight: 500">Tháng này</span>
+        <span class="num" style="font-size: 28px; font-weight: 700; color: #0B7A47">▲ +3,2%</span>
+        <span class="num" style="font-size: 13px; color: #5B6270">+77.100.000 ₫ so với 31/10</span>
+      </div>
+      <div style="background: #FFFFFF; border: 1px solid #E3E5E0; border-radius: 14px; padding: 20px 22px; display: flex; flex-direction: column; gap: 10px">
+        <span style="font-size: 13px; color: #5B6270; font-weight: 500">Từ đầu năm</span>
+        <span class="num" style="font-size: 28px; font-weight: 700; color: #0B7A47">▲ +14,8%</span>
+        <span class="num" style="font-size: 13px; color: #5B6270">VN-Index cùng kỳ: +11,7%</span>
+      </div>
+      <div style="background: #FFFFFF; border: 1px solid #E3E5E0; border-radius: 14px; padding: 20px 22px; display: flex; flex-direction: column; gap: 10px">
+        <span style="font-size: 13px; color: #5B6270; font-weight: 500">Lãi tiết kiệm tạm tính</span>
+        <span class="num" style="font-size: 28px; font-weight: 700">15.000.000 ₫</span>
+        <span style="font-size: 13px; color: #5B6270">3 sổ · sổ gần nhất đáo hạn 05/12</span>
+      </div>
+    </section>
+
+    <section style="display: flex; flex-wrap: wrap; gap: 16px">
+      <div style="flex: 2 1 520px; min-width: 0; background: #FFFFFF; border: 1px solid #E3E5E0; border-radius: 14px; padding: 22px; display: flex; flex-direction: column; gap: 16px">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
+          <h2 style="margin: 0; font-size: 16px; font-weight: 600">Tài sản ròng theo thời gian</h2>
+          <div role="group" aria-label="Khoảng thời gian" style="display: flex; gap: 4px; background: #F1F2EF; border-radius: 8px; padding: 3px">
+            <sc-for list="{{ ranges }}" as="r" hint-placeholder-count="4">
+              <button type="button" onClick="{{ r.pick }}" aria-pressed="{{ r.pressed }}" style="{{ r.style }}">{{ r.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 20px; font-size: 13px; color: #3F4550">
+          <span style="display: inline-flex; align-items: center; gap: 8px"><span aria-hidden="true" style="width: 18px; height: 3px; background: #2547B8; border-radius: 2px"></span>Danh mục của bạn</span>
+          <span style="display: inline-flex; align-items: center; gap: 8px"><span aria-hidden="true" style="width: 18px; height: 0; border-top: 2px dashed #8A909B"></span>VN-Index (quy đổi cùng mốc)</span>
+        </div>
+        <svg role="img" aria-label="Biểu đồ tài sản ròng 12 tháng, tăng từ khoảng 2,05 tỷ lên 2,49 tỷ đồng" viewBox="0 0 760 240" style="width: 100%; height: 260px" preserveAspectRatio="none">
+          <g stroke="#ECEDEA" stroke-width="1">
+            <line x1="40" y1="20" x2="760" y2="20"></line>
+            <line x1="40" y1="65" x2="760" y2="65"></line>
+            <line x1="40" y1="110" x2="760" y2="110"></line>
+            <line x1="40" y1="155" x2="760" y2="155"></line>
+            <line x1="40" y1="200" x2="760" y2="200"></line>
+          </g>
+          <g fill="#5B6270" font-size="11" font-family="Be Vietnam Pro, sans-serif">
+            <text x="0" y="24">2,5 tỷ</text>
+            <text x="0" y="114">2,25</text>
+            <text x="0" y="204">2,0 tỷ</text>
+            <text x="40" y="226">12/25</text>
+            <text x="236" y="226">03/26</text>
+            <text x="432" y="226">06/26</text>
+            <text x="628" y="226">09/26</text>
+            <text x="722" y="226">11/26</text>
+          </g>
+          <path d="M40 182 L105 171 L171 189 L236 157 L302 135 L367 146 L433 114 L498 92 L564 103 L629 70 L695 49 L760 25 L760 200 L40 200 Z" fill="#2547B8" fill-opacity="0.08"></path>
+          <path d="M40 182 L105 178 L171 196 L236 175 L302 157 L367 164 L433 146 L498 132 L564 142 L629 121 L695 110 L760 96" fill="none" stroke="#8A909B" stroke-width="2" stroke-dasharray="6 5"></path>
+          <path d="M40 182 L105 171 L171 189 L236 157 L302 135 L367 146 L433 114 L498 92 L564 103 L629 70 L695 49 L760 25" fill="none" stroke="#2547B8" stroke-width="2.5" stroke-linejoin="round"></path>
+          <circle cx="760" cy="25" r="4.5" fill="#2547B8"></circle>
+        </svg>
+      </div>
+
+      <div style="flex: 1 1 300px; min-width: 0; background: #FFFFFF; border: 1px solid #E3E5E0; border-radius: 14px; padding: 22px; display: flex; flex-direction: column; gap: 16px">
+        <h2 style="margin: 0; font-size: 16px; font-weight: 600">Phân bổ tài sản</h2>
+        <div style="display: flex; justify-content: center; position: relative">
+          <svg role="img" aria-label="Phân bổ: cổ phiếu 45%, tiết kiệm 28,2%, vàng 17,9%, crypto 8,9%" width="200" height="200" viewBox="0 0 160 160">
+            <g transform="rotate(-90 80 80)" fill="none" stroke-width="22">
+              <circle cx="80" cy="80" r="60" stroke="#2547B8" stroke-dasharray="168.8 377" stroke-dashoffset="0"></circle>
+              <circle cx="80" cy="80" r="60" stroke="#6FA8DC" stroke-dasharray="105.1 377" stroke-dashoffset="-169.8"></circle>
+              <circle cx="80" cy="80" r="60" stroke="#D4A017" stroke-dasharray="66.6 377" stroke-dashoffset="-275.9"></circle>
+              <circle cx="80" cy="80" r="60" stroke="#9A4D0E" stroke-dasharray="32.4 377" stroke-dashoffset="-343.5"></circle>
+            </g>
+          </svg>
+          <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+            <span style="font-size: 12px; color: #5B6270">4 loại</span>
+            <span class="num" style="font-size: 18px; font-weight: 700">2,49 tỷ</span>
+          </div>
+        </div>
+        <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px">
+          <sc-for list="{{ classes }}" as="c" hint-placeholder-count="4">
+            <li style="display: flex; align-items: center; gap: 10px; font-size: 14px">
+              <span aria-hidden="true" style="{{ c.swatch }}"></span>
+              <span style="flex: 1 1 auto">{{ c.name }}</span>
+              <span class="num" style="color: #5B6270">{{ c.share }}</span>
+              <span class="num" style="font-weight: 600; min-width: 112px; text-align: right">{{ c.valueShort }}</span>
+            </li>
+          </sc-for>
+        </ul>
+      </div>
+    </section>
+
+    <section style="display: flex; flex-wrap: wrap; gap: 16px">
+      <div style="flex: 2 1 520px; min-width: 0; background: #FFFFFF; border: 1px solid #E3E5E0; border-radius: 14px; padding: 22px; display: flex; flex-direction: column; gap: 12px">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+          <h2 style="margin: 0; font-size: 16px; font-weight: 600">Theo loại tài sản</h2>
+          <a href="Portfolio.dc.html" style="font-size: 14px; font-weight: 600; min-height: 44px; display: inline-flex; align-items: center">Xem danh mục →</a>
+        </div>
+        <div style="overflow-x: auto">
+          <table style="width: 100%; border-collapse: collapse; font-size: 14px; min-width: 620px">
+            <thead>
+              <tr style="text-align: left; color: #5B6270; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em">
+                <th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E3E5E0">Loại</th>
+                <th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E3E5E0; text-align: right">Giá trị</th>
+                <th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E3E5E0; text-align: right">Giá vốn</th>
+                <th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E3E5E0; text-align: right">Lãi/lỗ</th>
+                <th scope="col" style="padding: 10px 8px; font-weight: 600; border-bottom: 1px solid #E3E5E0">Giá cập nhật</th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{ classes }}" as="c" hint-placeholder-count="4">
+                <tr>
+                  <th scope="row" style="padding: 14px 8px; border-bottom: 1px solid #F0F1EE; text-align: left; font-weight: 600"><span style="display: inline-flex; align-items: center; gap: 10px"><span aria-hidden="true" style="{{ c.swatch }}"></span>{{ c.name }}</span></th>
+                  <td class="num" style="padding: 14px 8px; border-bottom: 1px solid #F0F1EE; text-align: right; font-weight: 600">{{ c.value }}</td>
+                  <td class="num" style="padding: 14px 8px; border-bottom: 1px solid #F0F1EE; text-align: right; color: #5B6270">{{ c.cost }}</td>
+                  <td class="num" style="{{ c.plStyle }}">{{ c.pl }}</td>
+                  <td style="padding: 14px 8px; border-bottom: 1px solid #F0F1EE; color: #5B6270; font-size: 13px">{{ c.updated }}</td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div style="flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+        <div style="background: #FFFFFF; border: 1px solid #E3E5E0; border-radius: 14px; padding: 22px; display: flex; flex-direction: column; gap: 12px">
+          <h2 style="margin: 0; font-size: 16px; font-weight: 600">Sắp đáo hạn</h2>
+          <sc-for list="{{ maturities }}" as="m" hint-placeholder-count="2">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid #F0F1EE">
+              <div style="display: flex; flex-direction: column; gap: 2px">
+                <span style="font-size: 14px; font-weight: 600">{{ m.bank }}</span>
+                <span style="font-size: 13px; color: #5B6270">{{ m.detail }}</span>
+              </div>
+              <span style="font-size: 12px; font-weight: 600; color: #8A4B00; background: #FFF0DC; border-radius: 999px; padding: 4px 10px; white-space: nowrap">{{ m.when }}</span>
+            </div>
+          </sc-for>
+          <a href="Savings.dc.html" style="font-size: 14px; font-weight: 600; min-height: 44px; display: inline-flex; align-items: center">Tất cả sổ tiết kiệm →</a>
+        </div>
+        <div style="background: #FFFFFF; border: 1px solid #E3E5E0; border-radius: 14px; padding: 22px; display: flex; flex-direction: column; gap: 12px">
+          <h2 style="margin: 0; font-size: 16px; font-weight: 600">Giao dịch gần đây</h2>
+          <sc-for list="{{ recent }}" as="t" hint-placeholder-count="3">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid #F0F1EE">
+              <div style="display: flex; flex-direction: column; gap: 2px">
+                <span style="font-size: 14px; font-weight: 600">{{ t.title }}</span>
+                <span style="font-size: 13px; color: #5B6270">{{ t.date }}</span>
+              </div>
+              <span class="num" style="font-size: 14px; font-weight: 600">{{ t.amount }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1240}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { range: '1N' };
+  }
+  renderVals() {
+    var self = this;
+    var labels = ['1T', '3T', '1N', 'Tất cả'];
+    var ranges = labels.map(function (l) {
+      var on = self.state.range === l;
+      return {
+        label: l,
+        pressed: on ? 'true' : 'false',
+        pick: function () { self.setState({ range: l }); },
+        style: 'min-height: 32px; min-width: 44px; padding: 0 12px; border: 0; border-radius: 6px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; ' + (on ? 'background: #FFFFFF; color: #16181D; box-shadow: 0 1px 2px rgba(0,0,0,0.08);' : 'background: transparent; color: #5B6270;')
+      };
+    });
+    function sw(c) { return 'width: 10px; height: 10px; border-radius: 3px; flex: 0 0 auto; background: ' + c; }
+    function pl(pos) { return 'padding: 14px 8px; border-bottom: 1px solid #F0F1EE; text-align: right; font-weight: 600; color: ' + (pos ? '#0B7A47' : '#5B6270'); }
+    return {
+      ranges: ranges,
+      classes: [
+        { name: 'Cổ phiếu', swatch: sw('#2547B8'), share: '45,0%', value: '1.120.000.000 ₫', valueShort: '1.120,0 tr', cost: '1.015.000.000 ₫', pl: '▲ +105.000.000 (+10,3%)', plStyle: pl(true), updated: '20/11 15:32 · DNSE' },
+        { name: 'Tiết kiệm', swatch: sw('#6FA8DC'), share: '28,2%', value: '700.000.000 ₫', valueShort: '700,0 tr', cost: '685.000.000 ₫', pl: '▲ +15.000.000 (lãi tạm tính)', plStyle: pl(true), updated: 'Tính hằng ngày' },
+        { name: 'Vàng', swatch: sw('#D4A017'), share: '17,9%', value: '446.000.000 ₫', valueShort: '446,0 tr', cost: '418.000.000 ₫', pl: '▲ +28.000.000 (+6,7%)', plStyle: pl(true), updated: '21/11 09:00 · Finhay' },
+        { name: 'Crypto', swatch: sw('#9A4D0E'), share: '8,9%', value: '220.500.000 ₫', valueShort: '220,5 tr', cost: '195.250.000 ₫', pl: '▲ +25.250.000 (+12,9%)', plStyle: pl(true), updated: '21/11 07:00 · CoinGecko' }
+      ],
+      maturities: [
+        { bank: 'MB Bank', detail: '135.000.000 ₫ · 6 tháng · 4,6%/năm', when: '05/12/2026' },
+        { bank: 'Techcombank', detail: '250.000.000 ₫ · 9 tháng · 5,0%/năm', when: '02/03/2027' }
+      ],
+      recent: [
+        { title: 'Mua 1.000 HPG', date: '18/11/2026 · DNSE', amount: '−26.990.425 ₫' },
+        { title: 'Cổ tức tiền mặt VCB', date: '12/11/2026 · DNSE', amount: '+2.850.000 ₫' },
+        { title: 'Mua 0,25 ETH', date: '05/11/2026 · Ví Binance', amount: '−21.421.400 ₫' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

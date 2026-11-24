@@ -1,0 +1,188 @@
+import Papa from "papaparse";
+import { parseDecimal, qtyToString } from "./calc/decimal";
+import { TX_TYPES, type TxType } from "./calc/types";
+
+export const CSV_HEADER = [
+  "date",
+  "type",
+  "asset_class",
+  "symbol",
+  "account",
+  "quantity",
+  "price",
+  "fee",
+  "tax",
+  "note",
+] as const;
+
+const MARKET_CLASSES = ["stock", "crypto", "gold"] as const;
+type MarketClass = (typeof MARKET_CLASSES)[number];
+
+export interface CsvTransaction {
+  date: string;
+  type: TxType;
+  assetClass: MarketClass;
+  symbol: string;
+  account: string;
+  /** Canonical decimal string (gold in chỉ). */
+  quantity: string;
+  price: bigint;
+  fee: bigint;
+  tax: bigint;
+  note: string;
+}
+
+// Spreadsheets execute cells starting with these characters as formulas;
+// prefix a quote on export and strip it again on import.
+const FORMULA_START = /^[=+\-@\t\r]/;
+export const guard = (text: string) =>
+  FORMULA_START.test(text) ? `'${text}` : text;
+export const unguard = (text: string) =>
+  text.startsWith("'") && FORMULA_START.test(text.slice(1))
+    ? text.slice(1)
+    : text;
+
+export function toTransactionsCsv(rows: CsvTransaction[]): string {
+  return Papa.unparse(
+    {
+      fields: [...CSV_HEADER],
+      data: rows.map((r) => [
+        r.date,
+        r.type,
+        r.assetClass,
+        guard(r.symbol),
+        guard(r.account),
+        r.quantity,
+        r.price.toString(),
+        r.fee.toString(),
+        r.tax.toString(),
+        guard(r.note),
+      ]),
+    },
+    { newline: "\n" },
+  );
+}
+
+function money(value: string, field: string): bigint {
+  const v = value.trim() || "0";
+  if (!/^-?\d+$/.test(v)) throw new Error(`${field} phải là số nguyên VND`);
+  return BigInt(v);
+}
+
+export function parseTransactionsCsv(text: string): {
+  rows: (CsvTransaction & { line: number })[];
+  errors: { line: number; message: string }[];
+} {
+  const parsed = Papa.parse<Record<string, string>>(text.replace(/^﻿/, ""), {
+    header: true,
+    skipEmptyLines: "greedy",
+    transformHeader: (h) => h.trim().toLowerCase(),
+  });
+  const missing = CSV_HEADER.filter(
+    (h) => h !== "note" && !parsed.meta.fields?.includes(h),
+  );
+  if (missing.length)
+    return {
+      rows: [],
+      errors: [{ line: 1, message: `Thiếu cột: ${missing.join(", ")}` }],
+    };
+
+  const rows: (CsvTransaction & { line: number })[] = [];
+  const errors: { line: number; message: string }[] = [];
+  parsed.data.forEach((raw, i) => {
+    const line = i + 2;
+    try {
+      const date = (raw.date ?? "").trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date))
+        throw new Error("Ngày phải theo dạng YYYY-MM-DD");
+      const type = (raw.type ?? "").trim() as TxType;
+      if (!TX_TYPES.includes(type))
+        throw new Error(`Loại giao dịch không hợp lệ: "${raw.type}"`);
+      const assetClass = (raw.asset_class ?? "").trim() as MarketClass;
+      if (!MARKET_CLASSES.includes(assetClass))
+        throw new Error("asset_class phải là stock, crypto hoặc gold");
+      const symbol = unguard((raw.symbol ?? "").trim());
+      if (!symbol) throw new Error("Thiếu mã tài sản");
+      const account = unguard((raw.account ?? "").trim());
+      if (!account) throw new Error("Thiếu tài khoản");
+      let quantity: string;
+      try {
+        quantity = qtyToString(
+          parseDecimal((raw.quantity ?? "").trim() || "0"),
+        );
+      } catch {
+        throw new Error("Số lượng không hợp lệ (dùng dấu chấm thập phân)");
+      }
+      rows.push({
+        line,
+        date,
+        type,
+        assetClass,
+        symbol,
+        account,
+        quantity,
+        price: money(raw.price ?? "", "price"),
+        fee: money(raw.fee ?? "", "fee"),
+        tax: money(raw.tax ?? "", "tax"),
+        note: unguard((raw.note ?? "").trim()),
+      });
+    } catch (err) {
+      errors.push({ line, message: (err as Error).message });
+    }
+  });
+  return { rows, errors };
+}
+
+export interface SnapshotCsvRow {
+  date: string;
+  byClass: Record<
+    "stock" | "savings" | "gold" | "crypto",
+    { marketValue: bigint; costBasis: bigint }
+  >;
+  cash: bigint;
+  receivable: bigint;
+  /** Negative. */
+  liability: bigint;
+  /** Hundredths of a point, as stored in prices. */
+  vnIndex: bigint | null;
+}
+
+export function toSnapshotsCsv(rows: SnapshotCsvRow[]): string {
+  const classes = ["stock", "savings", "gold", "crypto"] as const;
+  return Papa.unparse(
+    {
+      fields: [
+        "date",
+        ...classes,
+        "cash",
+        "receivable",
+        "liability",
+        "total",
+        "cost_basis",
+        "vnindex",
+      ],
+      data: rows.map((r) => {
+        const total = classes.reduce(
+          (s, c) => s + r.byClass[c].marketValue,
+          r.cash + r.receivable + r.liability,
+        );
+        const cost = classes.reduce((s, c) => s + r.byClass[c].costBasis, 0n);
+        const idx =
+          r.vnIndex === null
+            ? ""
+            : `${r.vnIndex / 100n}.${(r.vnIndex % 100n).toString().padStart(2, "0")}`;
+        return [
+          r.date,
+          ...classes.map((c) => r.byClass[c].marketValue.toString()),
+          r.cash.toString(),
+          r.receivable.toString(),
+          r.liability.toString(),
+          total.toString(),
+          cost.toString(),
+          idx,
+        ];
+      }),
+    },
+    { newline: "\n" },
+  );
+}
