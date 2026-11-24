@@ -27,6 +27,30 @@ export function parseDnseOhlc(body: unknown, scale: number): Bar[] {
   }));
 }
 
+/** Fmarket get-nav-history → price per 100 CCQ by NAV date, oldest first. */
+export function parseFmarketNav(body: unknown): Bar[] {
+  const rows = (body as { data?: unknown } | null)?.data;
+  const bad = () =>
+    new Error(
+      `Phản hồi NAV không hợp lệ: ${JSON.stringify(body).slice(0, 200)}`,
+    );
+  if (!Array.isArray(rows)) throw bad();
+  const byDate = new Map<string, bigint>();
+  for (const r of rows as { navDate?: unknown; nav?: unknown }[]) {
+    if (
+      typeof r?.navDate !== "string" ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(r.navDate) ||
+      typeof r.nav !== "number" ||
+      !Number.isFinite(r.nav)
+    )
+      throw bad();
+    byDate.set(r.navDate, BigInt(Math.round(r.nav * 100)));
+  }
+  return [...byDate]
+    .map(([date, close]) => ({ date, close }))
+    .sort((a, b) => (a.date < b.date ? -1 : 1));
+}
+
 /** Vietcombank XML → USD transfer rate as a decimal string ("25600.00"). */
 export function parseVcbUsd(xml: string): string {
   const node = /<Exrate\s+CurrencyCode="USD"[^>]*\/>/.exec(xml)?.[0];

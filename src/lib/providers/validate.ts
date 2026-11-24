@@ -3,15 +3,19 @@ import { formatInt, formatPct } from "../format";
 
 /** CONTEXT.md §5: a move larger than ±15% vs. the previous price is held for review. */
 export const MAX_DAILY_MOVE = 0.15;
+/** Fund NAVs move less (§14.2). */
+export const FUND_MAX_MOVE = 0.1;
 
 export function reviewPrice({
   price,
   previous,
   band,
+  maxMove = MAX_DAILY_MOVE,
 }: {
   price: bigint;
   previous: bigint | null;
   band?: { floor: bigint; ceiling: bigint } | null;
+  maxMove?: number;
 }): { needsReview: boolean; reason: string | null } {
   if (price <= 0n)
     return {
@@ -26,7 +30,7 @@ export function reviewPrice({
   }
   if (previous && previous > 0n) {
     const move = ratio(price - previous, previous) ?? 0;
-    if (Math.abs(move) > MAX_DAILY_MOVE) {
+    if (Math.abs(move) > maxMove) {
       return {
         needsReview: true,
         reason: `Lệch ${formatPct(move, { digits: 1, signed: true })} so với giá trước`,

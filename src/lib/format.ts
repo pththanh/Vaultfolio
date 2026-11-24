@@ -13,6 +13,11 @@ export function formatInt(value: bigint | number): string {
   return `${v < 0n ? MINUS : ""}${intFmt.format(abs)}`;
 }
 
+/** Fund price per 100 CCQ → NAV per CCQ: 1234567n → "12.345,67" */
+export function formatNav(price: bigint): string {
+  return `${formatInt(price / 100n)},${(price % 100n).toString().padStart(2, "0")}`;
+}
+
 export function formatVnd(value: bigint | number): string {
   return `${formatInt(value)}${NBSP}₫`;
 }

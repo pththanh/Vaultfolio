@@ -25,6 +25,7 @@ import {
   dnseProvider,
   fetchVcbUsd,
   finhayProvider,
+  fmarketProvider,
   type PriceProvider,
   type ProviderResult,
 } from "./providers";
@@ -239,6 +240,25 @@ const JOB_IMPL: Record<JobKey, (ctx: Ctx) => Promise<Outcome>> = {
     const applied = await apply(result, ctx);
     return summarize(result, applied, 0, `${list.length} loại vàng`);
   },
+
+  async fund(ctx) {
+    const list = await db
+      .select()
+      .from(instruments)
+      .where(eq(instruments.assetClass, "fund"));
+    if (!list.length) return { status: "skipped", detail: "Chưa có quỹ nào" };
+    const result = await fmarketProvider.getPrices(list, ctx);
+    const applied = await apply(result, ctx);
+    const stale = ctx.backfill
+      ? 0
+      : await markStale(result.failures.map((f) => f.instrumentId));
+    return summarize(
+      result,
+      applied,
+      stale,
+      `NAV theo ngày định giá · ${list.length} quỹ`,
+    );
+  },
 };
 
 async function runFallback(
@@ -294,6 +314,22 @@ async function apply(
       keptManual++;
       continue;
     }
+    // Re-reading an unchanged price must not undo its approval.
+    if (
+      !ctx.backfill &&
+      existing?.source === result.source &&
+      existing.price === p.price
+    ) {
+      await db
+        .update(prices)
+        .set({ stale: false, fetchedAt: new Date() })
+        .where(
+          and(eq(prices.instrumentId, p.instrumentId), eq(prices.date, p.date)),
+        );
+      if (existing.needsReview) review++;
+      written++;
+      continue;
+    }
     let flags = { needsReview: false, reviewReason: null as string | null };
     if (!ctx.backfill) {
       const [prev] = await db
@@ -312,6 +348,7 @@ async function apply(
         price: p.price,
         previous: prev?.price ?? null,
         band: p.band,
+        maxMove: p.maxMove,
       });
       flags = { needsReview: r.needsReview, reviewReason: r.reason };
       if (r.needsReview) review++;
@@ -360,6 +397,29 @@ async function carryForward(
         fetchedAt: new Date(),
       })
       .onConflictDoNothing();
+    n++;
+  }
+  return n;
+}
+
+/**
+ * Funds keep the NAV date, so a failed run flags the last NAV instead of copying
+ * it to today: a copy would hide a NAV published later for an earlier day.
+ */
+async function markStale(instrumentIds: string[]): Promise<number> {
+  let n = 0;
+  for (const id of new Set(instrumentIds)) {
+    const [last] = await db
+      .select()
+      .from(prices)
+      .where(and(eq(prices.instrumentId, id), eq(prices.needsReview, false)))
+      .orderBy(desc(prices.date))
+      .limit(1);
+    if (!last || last.source === "manual") continue;
+    await db
+      .update(prices)
+      .set({ stale: true })
+      .where(and(eq(prices.instrumentId, id), eq(prices.date, last.date)));
     n++;
   }
   return n;

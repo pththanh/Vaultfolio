@@ -71,6 +71,7 @@ export function OverrideDialog({
   instrumentId,
   label,
   isGold,
+  isFund,
   defaultDate,
   today,
   defaultPrice,
@@ -80,6 +81,7 @@ export function OverrideDialog({
   instrumentId: string;
   label: string;
   isGold: boolean;
+  isFund: boolean;
   defaultDate: string;
   today: string;
   defaultPrice?: string;
@@ -132,7 +134,15 @@ export function OverrideDialog({
                 className={inputClass}
               />
             </Field>
-            <Field label={isGold ? "Giá mua vào (₫/lượng)" : "Giá (₫)"}>
+            <Field
+              label={
+                isGold
+                  ? "Giá mua vào (₫/lượng)"
+                  : isFund
+                    ? "NAV (₫/CCQ)"
+                    : "Giá (₫)"
+              }
+            >
               <input
                 name="price"
                 inputMode="decimal"

@@ -16,6 +16,7 @@ import {
   formatDateTimeShort,
   formatDateTimeWithDay,
   formatInt,
+  formatNav,
   formatPct,
   todayVN,
   trend,
@@ -85,14 +86,16 @@ export default async function PricesPage() {
   const counts = {
     stock: `${held.stock.rows.length} mã${p.indexId ? " + VN-Index" : ""}`,
     crypto: `${held.crypto.rows.length} coin`,
+    fund: `${held.fund.rows.length} quỹ`,
     gold: `${held.gold.rows.length} loại`,
     fx: "USD/VND",
-    snapshot: "4 loại tài sản",
+    snapshot: "5 loại tài sản",
   };
 
   // Instruments shown in the "current prices" table: held ones plus the benchmark.
   const shownIds = [
     ...held.stock.rows,
+    ...held.fund.rows,
     ...held.crypto.rows,
     ...held.gold.rows,
   ].map((r) => r.instrument.id);
@@ -102,11 +105,13 @@ export default async function PricesPage() {
   const showPrice = (v: bigint, cls: string) =>
     cls === "gold"
       ? formatInt(perChiToPerLuong(v))
-      : cls === "index"
-        ? (Number(v) / 100).toLocaleString("vi-VN", {
-            minimumFractionDigits: 2,
-          })
-        : formatInt(v);
+      : cls === "fund"
+        ? formatNav(v)
+        : cls === "index"
+          ? (Number(v) / 100).toLocaleString("vi-VN", {
+              minimumFractionDigits: 2,
+            })
+          : formatInt(v);
 
   return (
     <>
@@ -173,8 +178,8 @@ export default async function PricesPage() {
           <div className="flex flex-col gap-1">
             <CardTitle>Giá cần xem lại</CardTitle>
             <span className="text-[13px] text-subtle">
-              Biến động hơn ±15% so với phiên trước, hoặc ngoài biên độ
-              trần/sàn. Chưa áp dụng vào danh mục.
+              Biến động hơn ±15% (quỹ mở ±10%) so với phiên trước, hoặc ngoài
+              biên độ trần/sàn. Chưa áp dụng vào danh mục.
             </span>
           </div>
           <Pill tone="warn" className="text-[13px] num">
@@ -275,6 +280,7 @@ export default async function PricesPage() {
                             instrumentId={price.instrumentId}
                             label={instrument.symbol}
                             isGold={instrument.assetClass === "gold"}
+                            isFund={instrument.assetClass === "fund"}
                             defaultDate={price.date}
                             today={today}
                             trigger="Nhập tay"
@@ -295,7 +301,7 @@ export default async function PricesPage() {
           <CardTitle>Giá đang áp dụng</CardTitle>
           <span className="text-[13px] text-subtle">
             Giá gần nhất dùng để định giá danh mục. Vàng hiển thị theo lượng
-            (giá mua vào). Ghi đè sẽ áp dụng ngay.
+            (giá mua vào), quỹ mở theo NAV/CCQ. Ghi đè sẽ áp dụng ngay.
           </span>
         </div>
         <div className={table.wrap}>
@@ -367,6 +373,7 @@ export default async function PricesPage() {
                           instrumentId={i.id}
                           label={i.symbol}
                           isGold={i.assetClass === "gold"}
+                          isFund={i.assetClass === "fund"}
                           defaultDate={today}
                           today={today}
                           trigger="Ghi đè giá"

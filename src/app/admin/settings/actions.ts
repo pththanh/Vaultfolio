@@ -9,6 +9,7 @@ import { db } from "@/db";
 import {
   accounts,
   cashEntries,
+  fundFeeSchedules,
   instruments,
   savingsDeposits,
   transactions,
@@ -16,6 +17,7 @@ import {
   users,
 } from "@/db/schema";
 import { QTY_SCALE, divRound, parseViNumber } from "@/lib/calc/decimal";
+import { tiersError } from "@/lib/calc/fund/schedule";
 import type { FeeConfig } from "@/lib/calc/fees";
 import { signOut } from "@/auth";
 import { requireUser } from "@/server/session";
@@ -150,6 +152,11 @@ const feeSchema = z.object({
   sellTaxBps: pct,
   dividendTaxBps: pct,
   demandRateBps: pct,
+  fundTaxBps: pct,
+  fundTaxFreeMonths: z
+    .string()
+    .regex(/^\d{1,3}$/, "Số tháng không hợp lệ")
+    .transform(Number),
 }) satisfies z.ZodType<FeeConfig, Record<string, string>>;
 
 export async function saveFees(
@@ -167,6 +174,76 @@ export async function saveFees(
       set: { fees: parsed.data, updatedAt: new Date() },
     });
   return done("Đã lưu cấu hình phí & thuế", "/admin");
+}
+
+// ——— Fund fee schedules ————————————————————————————————————
+
+const fundFeesSchema = z.object({
+  instrumentId: z.uuid(),
+  side: z.enum(["buy", "sell"]),
+  effectiveFrom: z.iso.date("Ngày không hợp lệ"),
+  tiers: z
+    .array(
+      z.object({
+        fromMonths: z
+          .string()
+          .trim()
+          .regex(/^\d{1,3}$/, "Số tháng không hợp lệ")
+          .transform(Number),
+        op: z.enum(["gte", "gt"]),
+        fee: pct,
+      }),
+    )
+    .max(20),
+});
+
+/** Replaces the schedule of one fund and side that starts on `effectiveFrom`. */
+export async function saveFundFees(
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  await requireUser();
+  let tiersJson: unknown;
+  try {
+    tiersJson = JSON.parse(String(formData.get("tiers") ?? "[]"));
+  } catch {
+    return { error: "Dữ liệu không hợp lệ" };
+  }
+  const parsed = fundFeesSchema.safeParse({
+    ...Object.fromEntries(formData),
+    tiers: tiersJson,
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message };
+  const { instrumentId, side, effectiveFrom } = parsed.data;
+  const tiers = parsed.data.tiers.map((t) => ({
+    fromMonths: t.fromMonths,
+    fromInclusive: t.op === "gte",
+    feeBps: t.fee,
+  }));
+  const invalid = tiersError(tiers);
+  if (invalid) return { error: invalid };
+  const instrument = await db.query.instruments.findFirst({
+    where: and(
+      eq(instruments.id, instrumentId),
+      eq(instruments.assetClass, "fund"),
+    ),
+  });
+  if (!instrument) return { error: "Không tìm thấy quỹ" };
+  await db.transaction(async (tx) => {
+    await tx
+      .delete(fundFeeSchedules)
+      .where(
+        and(
+          eq(fundFeeSchedules.instrumentId, instrumentId),
+          eq(fundFeeSchedules.side, side),
+          eq(fundFeeSchedules.effectiveFrom, effectiveFrom),
+        ),
+      );
+    await tx
+      .insert(fundFeeSchedules)
+      .values(tiers.map((t) => ({ ...t, instrumentId, side, effectiveFrom })));
+  });
+  return done(`Đã lưu biểu phí ${instrument.symbol}`, "/admin");
 }
 
 // ——— Accounts ——————————————————————————————————————————

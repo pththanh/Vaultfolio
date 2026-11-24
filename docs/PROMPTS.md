@@ -159,3 +159,47 @@ cache tài nguyên tĩnh, không cache dữ liệu tài chính. Rà lại Ghi ch
 Sau đó rà soát bảo mật cho toàn bộ module thu chi như bước 8 (phân quyền mọi query, CSV, header),
 chạy lint, typecheck, test, build và cập nhật docs/CONTEXT.md (nhật ký quyết định, câu hỏi đã chốt).
 ```
+
+---
+
+# P6 — Quỹ mở (Fmarket)
+
+Đọc trước **mục 14 của docs/CONTEXT.md**. File lịch sử lệnh `fmarket_orders.csv` là dữ liệu cá nhân: để ở `data/private/` (thêm vào `.gitignore`), **không commit**.
+
+## Bước 16 — P0: Kiểm tra nguồn NAV Fmarket
+```
+Theo mục 14.2 của docs/CONTEXT.md, thêm vào scripts/check-sources.ts phần Fmarket:
+gọi POST /res/products/filter và /res/product/get-nav-history (productId 68 và 82, 30 ngày gần nhất)
+từ Node, không header đăng nhập. In NAV mới nhất + navDate của VMEEF và VCBF-AIF, so với CafeF tôi
+đối chiếu tay. Nếu bị chặn (403/CORS/Cloudflare) thì thử thêm header Origin/Referer https://fmarket.vn
+và báo cho tôi header tối thiểu cần dùng. Cập nhật mục 14.2 CONTEXT.md với kết quả.
+```
+
+## Bước 17 — Schema, logic và import quỹ mở
+```
+Theo mục 14.1, 14.3, 14.4: thêm asset_class 'fund', bảng fund_fee_schedules (seed biểu phí VMEEF,
+VCBF-AIF ở 14.3), tham số thuế quỹ trong user_settings, instruments VMEEF (provider_ref 68) và
+VCBF-AIF (82), tài khoản "Fmarket". Viết src/lib/calc/fund/ (fundLots FIFO, sellFee, sellTax,
+fundPosition) với unit test trước, gồm ca ranh giới 12/24 tháng và ngày cuối tháng.
+Thêm import CSV lịch sử Fmarket (định dạng ở 14.5) có bước xem trước và chống trùng; chạy với
+data/private/fmarket_orders.csv và đối chiếu tổng CCQ, tổng vốn với số Fmarket tôi cung cấp riêng.
+Test và seed trong repo chỉ dùng số liệu giả.
+```
+
+## Bước 18 — Provider, cron và màn hình quỹ mở
+```
+Thêm FmarketFundProvider vào PriceProvider (mục 5) với fallback ManualProvider: lưu giá theo navDate,
+carry-forward + stale khi không có NAV mới, needs_review khi lệch > ±10%. Job cron `fund` lúc 09:30 VN
+(`30 2 * * *` trong vercel.json), có ghi job_runs, nút "Chạy lại" ở Giá & dữ liệu.
+Lệnh `npm run prices:backfill` thêm backfill NAV quỹ từ get-nav-history (isAllData:1).
+Màn hình theo mục 14.5: tab Quỹ mở trong Danh mục (dòng quỹ + bảng lô, thực nhận nếu bán hôm nay),
+nhóm "Quỹ mở" trên Tổng quan, snapshot thêm 'fund', Dietz tính cả quỹ. Cập nhật DEPLOY.md
+(thêm cron fund) và nhật ký quyết định trong CONTEXT.md.
+```
+
+## Bước 19 — Mua định kỳ quỹ mở (SIP)
+```
+Sau khi có recurring_rules (bước 14): cho phép tạo lịch mua định kỳ cho quỹ mở theo mục 14.5.
+Mỗi kỳ sinh một nhắc "chờ xác nhận"; khi xác nhận, tôi nhập số CCQ thực khớp (gợi ý = số tiền ÷ NAV
+ngày khớp) → tạo giao dịch buy + chuyển khoản từ ví trong cùng DB transaction.
+```

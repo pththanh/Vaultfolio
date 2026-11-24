@@ -147,6 +147,7 @@ export const classColor: Record<AllocationClass, string> = {
   savings: "#6FA8DC",
   gold: "#D4A017",
   crypto: "#9A4D0E",
+  fund: "#8E3B7A",
   cash: "#1B8A8F",
 };
 
@@ -155,6 +156,7 @@ export const classLabel: Record<AllocationClass, string> = {
   savings: "Tiết kiệm",
   gold: "Vàng",
   crypto: "Crypto",
+  fund: "Quỹ mở",
   cash: "Tiền & tài khoản",
 };
 

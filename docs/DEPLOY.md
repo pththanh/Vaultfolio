@@ -28,7 +28,7 @@ export DATABASE_URL_UNPOOLED='postgres://…/neondb?sslmode=require'
 
 npm run db:migrate
 NEW_PASSWORD='a long unique password' npm run user:create -- you@example.com
-npm run prices:backfill                 # one year of real DNSE + CoinGecko prices (uses your local API keys)
+npm run prices:backfill                 # real prices: DNSE + CoinGecko (one year), Fmarket NAV (full history) (uses your local API keys)
 unset DATABASE_URL DATABASE_URL_UNPOOLED
 ```
 
@@ -56,9 +56,9 @@ Deploy. Vercel picks up `vercel.json` (Singapore region plus the cron schedule).
 
 1. Open `https://<project>.vercel.app/login` and sign in.
 2. **Cài đặt → Bật xác thực 2 bước**: scan the QR code, confirm, then sign in again with the code.
-3. **Giá & dữ liệu**: press **Chạy lại ngay** on Tỷ giá, Crypto and Cổ phiếu VN. Each should show *Thành công* (the stock job shows *Bỏ qua* outside trading days).
+3. **Giá & dữ liệu**: press **Chạy lại ngay** on Tỷ giá, Crypto, Quỹ mở and Cổ phiếu VN. Each should show *Thành công* (the stock job shows *Bỏ qua* outside trading days; the fund job shows *Bỏ qua* until a fund exists). The fund run also proves that Fmarket answers from Vercel.
 4. **Báo cáo → Tính lại snapshot** to fill the history chart.
-5. Vercel → Project → **Settings → Cron Jobs**: five jobs should be listed. To test one by hand:
+5. Vercel → Project → **Settings → Cron Jobs**: six jobs should be listed. To test one by hand:
    `curl -H "Authorization: Bearer $CRON_SECRET" https://<project>.vercel.app/api/cron/fx`
 6. Optional: add a custom domain. HTTPS is automatic, and the app sends HSTS.
 
@@ -68,6 +68,7 @@ Deploy. Vercel picks up `vercel.json` (Singapore region plus the cron schedule).
 |---|---|---|
 | fx | `0 0 * * *` | 07:00 |
 | crypto | `5 0 * * *` | 07:05 |
+| fund | `30 2 * * *` | 09:30 |
 | gold | `0 9 * * *` | 16:00 |
 | stock | `30 8 * * 1-5` | 15:30 Mon–Fri |
 | snapshot | `0 10 * * *` | 17:00 |

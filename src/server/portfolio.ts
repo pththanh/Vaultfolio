@@ -256,7 +256,7 @@ export function holdingsByClass(
   }
 
   const out = {} as Record<MarketClass, ClassSummary>;
-  for (const cls of ["stock", "crypto", "gold"] as const) {
+  for (const cls of ["stock", "fund", "crypto", "gold"] as const) {
     const rows: HoldingView[] = [];
     let realized = 0n;
     let latest: PriceMeta | null = null;

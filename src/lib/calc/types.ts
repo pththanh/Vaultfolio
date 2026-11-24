@@ -4,6 +4,7 @@ export const ASSET_CLASSES = [
   "gold",
   "savings",
   "index",
+  "fund",
 ] as const;
 export type AssetClass = (typeof ASSET_CLASSES)[number];
 
@@ -11,6 +12,7 @@ export type AssetClass = (typeof ASSET_CLASSES)[number];
 export const PORTFOLIO_CLASSES = [
   "stock",
   "savings",
+  "fund",
   "gold",
   "crypto",
 ] as const;
@@ -39,7 +41,7 @@ export type TxType = (typeof TX_TYPES)[number];
 
 /**
  * A transaction as the calc layer sees it.
- * - quantity: scaled by QTY_SCALE (gold is always in chỉ)
+ * - quantity: scaled by QTY_SCALE (gold is always in chỉ, funds in hundreds of CCQ)
  * - price, fee, tax: integer VND (price per unit; for dividend_cash, per share)
  * - tradeDate: ISO date "YYYY-MM-DD"
  */

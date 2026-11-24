@@ -8,6 +8,7 @@ import type { FeeConfig } from "@/lib/calc/fees";
 import { getDefaultWalletId, loadCategories } from "@/server/cashbook";
 import { formatInt, todayVN } from "@/lib/format";
 import { loadPortfolio } from "@/server/portfolio";
+import { loadFeeSchedules } from "@/server/funds";
 import { requireUser } from "@/server/session";
 import {
   AccountCashRow,
@@ -17,6 +18,7 @@ import {
 import {
   AccountRow,
   FeesForm,
+  FundFeesForm,
   InstrumentRow,
   PasswordForm,
   TwoFactor,
@@ -38,13 +40,35 @@ export default async function SettingsPage() {
     getDefaultWalletId(user.id),
   ]);
   const feeValues = Object.fromEntries(
-    Object.entries(p.fees).map(([k, v]) => [k, bpsToPct(v as number)]),
+    Object.entries(p.fees).map(([k, v]) => [
+      k,
+      k === "fundTaxFreeMonths" ? String(v) : bpsToPct(v as number),
+    ]),
   ) as Record<keyof FeeConfig, string>;
   const instrumentList = [...p.instruments.values()].sort((a, b) =>
     a.assetClass === b.assetClass
       ? a.symbol.localeCompare(b.symbol, "vi")
       : a.assetClass.localeCompare(b.assetClass),
   );
+
+  const funds = instrumentList.filter((i) => i.assetClass === "fund");
+  const schedules = await loadFeeSchedules(funds.map((f) => f.id));
+  const latestTiers = (id: string, side: "buy" | "sell") => {
+    const own = schedules.filter(
+      (s) => s.instrumentId === id && s.side === side,
+    );
+    const from = own.at(-1)?.effectiveFrom ?? "";
+    return {
+      effectiveFrom: from,
+      tiers: own
+        .filter((s) => s.effectiveFrom === from)
+        .map((s) => ({
+          fromMonths: String(s.fromMonths),
+          op: s.fromInclusive ? ("gte" as const) : ("gt" as const),
+          fee: bpsToPct(s.feeBps),
+        })),
+    };
+  };
 
   async function logout() {
     "use server";
@@ -89,6 +113,33 @@ export default async function SettingsPage() {
         </div>
         <FeesForm values={feeValues} />
       </Card>
+
+      {funds.length > 0 && (
+        <Card className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <CardTitle>Biểu phí quỹ mở</CardTitle>
+            <span className="text-[13px] text-subtle">
+              Phí theo số tháng nắm giữ, tính từ ngày khớp. Đổi ngày hiệu lực để
+              thêm biểu phí mới và giữ biểu phí cũ.
+            </span>
+          </div>
+          {funds.flatMap((f) =>
+            (["sell", "buy"] as const).map((side) => {
+              const cur = latestTiers(f.id, side);
+              return (
+                <FundFeesForm
+                  key={`${f.id}:${side}:${JSON.stringify(cur)}`}
+                  instrumentId={f.id}
+                  symbol={f.symbol}
+                  side={side}
+                  effectiveFrom={cur.effectiveFrom || todayVN()}
+                  initial={cur.tiers}
+                />
+              );
+            }),
+          )}
+        </Card>
+      )}
 
       <Card className="flex flex-col gap-3">
         <CardTitle>Tài khoản &amp; nơi lưu giữ</CardTitle>

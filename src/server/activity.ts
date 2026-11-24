@@ -1,11 +1,12 @@
 import "server-only";
+import { fromHundreds } from "@/lib/calc/fund/units";
 import { parseDecimal } from "@/lib/calc/decimal";
 import { cashFlow } from "@/lib/calc/holdings";
 import { closingValue } from "@/lib/calc/savings";
 import { monthOf } from "@/lib/calc/cashbook/report";
 import type { CashEntry, Category } from "@/db/schema";
 import type { PortfolioClass, TxType } from "@/lib/calc/types";
-import { formatInt, formatPct, formatQty } from "@/lib/format";
+import { formatInt, formatNav, formatPct, formatQty } from "@/lib/format";
 import { toCalcTx, type Portfolio } from "./portfolio";
 
 export type BadgeKind = "buy" | "sell" | "div" | "dep";
@@ -69,6 +70,7 @@ export function formatHoldingQty(quantity: bigint, unit: string): string {
       return `${formatQty(quantity / 10n)} lượng`;
     return `${formatQty(quantity)} chỉ`;
   }
+  if (unit === "ccq") return formatQty(fromHundreds(quantity));
   return formatQty(quantity);
 }
 
@@ -245,17 +247,14 @@ export function buildActivity(p: Portfolio): ActivityRow[] {
     const qty =
       cls === "gold"
         ? `${formatQty(calc.quantity)} chỉ`
-        : formatQty(calc.quantity);
+        : formatHoldingQty(calc.quantity, instrument.unit);
     let qtyPrice = "—";
     if (tx.type === "bonus_share" || tx.type === "dividend_stock")
       qtyPrice = `+${qty} CP`;
     else if (calc.quantity !== 0n && tx.price !== 0n)
-      qtyPrice = `${qty} × ${formatInt(tx.price)}`;
+      qtyPrice = `${qty} × ${cls === "fund" ? formatNav(tx.price) : formatInt(tx.price)}`;
     const charges = tx.fee + tx.tax;
-    const titleQty =
-      cls === "gold"
-        ? `${formatQty(calc.quantity)} chỉ `
-        : `${formatQty(calc.quantity)} `;
+    const titleQty = `${qty} `;
     const verb = TITLE_LABEL[tx.type] ?? TX_LABEL[tx.type];
     rows.push({
       id: tx.id,

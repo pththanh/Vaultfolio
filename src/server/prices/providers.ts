@@ -5,7 +5,13 @@
  */
 import type { Instrument } from "@/db/schema";
 import { dnseHeaders } from "@/lib/providers/dnse-sign";
-import { parseDnseOhlc, parseVcbUsd, type Bar } from "@/lib/providers/parse";
+import {
+  parseDnseOhlc,
+  parseFmarketNav,
+  parseVcbUsd,
+  type Bar,
+} from "@/lib/providers/parse";
+import { FUND_MAX_MOVE } from "@/lib/providers/validate";
 import { ProviderError, fetchWithRetry, sleep } from "./http";
 
 export interface FetchedPrice {
@@ -13,6 +19,8 @@ export interface FetchedPrice {
   date: string;
   price: bigint;
   band?: { floor: bigint; ceiling: bigint } | null;
+  /** Review threshold when it differs from the default ±15%. */
+  maxMove?: number;
 }
 
 export interface ProviderResult {
@@ -274,6 +282,69 @@ export const finhayProvider: PriceProvider = {
     throw new ProviderError(
       "Finhay provider chưa được cài đặt — cần xác minh API khi có key",
     );
+  },
+};
+
+// ——— Fmarket (fund NAV, unofficial public API, CONTEXT.md §14.2) ————————
+
+/** NAVs are published late and may be corrected: daily runs re-read this many days. */
+const FUND_LOOKBACK_DAYS = 10;
+
+export const fmarketProvider: PriceProvider = {
+  source: "fmarket",
+  async getPrices(instruments, { today, days }) {
+    const out: ProviderResult = {
+      source: "fmarket",
+      prices: [],
+      failures: [],
+      notes: [],
+      calls: 0,
+    };
+    const from = new Date(`${today}T00:00:00Z`);
+    from.setUTCDate(from.getUTCDate() - FUND_LOOKBACK_DAYS);
+    const compact = (iso: string) => iso.replaceAll("-", "");
+    for (const i of instruments) {
+      try {
+        if (!/^\d+$/.test(i.providerRef ?? ""))
+          throw new ProviderError("chưa có Fmarket product id");
+        const res = await fetchWithRetry(
+          "https://api.fmarket.vn/res/product/get-nav-history",
+          () => ({
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              isAllData: days > 1 ? 1 : 0,
+              productId: Number(i.providerRef),
+              fromDate: compact(from.toISOString().slice(0, 10)),
+              toDate: compact(today),
+            }),
+          }),
+        );
+        out.calls += res.attempts;
+        out.notes.push(...res.notes.map((n) => `${i.symbol}: ${n}`));
+        const navs = parseFmarketNav(JSON.parse(res.body)).filter(
+          (n) => n.date <= today,
+        );
+        if (navs.length === 0)
+          throw new ProviderError(
+            `không có NAV mới trong ${FUND_LOOKBACK_DAYS} ngày`,
+          );
+        for (const n of navs)
+          out.prices.push({
+            instrumentId: i.id,
+            date: n.date,
+            price: n.close,
+            maxMove: FUND_MAX_MOVE,
+          });
+      } catch (err) {
+        out.failures.push({
+          instrumentId: i.id,
+          error: `${i.symbol}: ${(err as Error).message}`,
+        });
+      }
+      await sleep(200);
+    }
+    return out;
   },
 };
 

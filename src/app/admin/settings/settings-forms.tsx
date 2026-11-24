@@ -13,6 +13,7 @@ import {
   disableTotp,
   saveAccount,
   saveFees,
+  saveFundFees,
   saveInstrument,
   startTotpSetup,
 } from "./actions";
@@ -226,6 +227,16 @@ const FEE_FIELDS: { name: string; label: string; hint: string }[] = [
     label: "Lãi không kỳ hạn (%/năm)",
     hint: "Dùng khi rút tiết kiệm trước hạn",
   },
+  {
+    name: "fundTaxBps",
+    label: "Thuế bán quỹ mở (%)",
+    hint: "Trên giá trị bán của lô chưa đủ thời gian",
+  },
+  {
+    name: "fundTaxFreeMonths",
+    label: "Miễn thuế quỹ mở sau (tháng)",
+    hint: "Áp dụng khi bán từ 01/07/2026",
+  },
 ];
 
 export function FeesForm({ values }: { values: Record<string, string> }) {
@@ -252,6 +263,115 @@ export function FeesForm({ values }: { values: Record<string, string> }) {
           className={buttonClass("primary")}
         >
           Lưu cấu hình
+        </button>
+      </div>
+    </form>
+  );
+}
+
+interface TierInput {
+  fromMonths: string;
+  op: "gte" | "gt";
+  fee: string;
+}
+
+export function FundFeesForm({
+  instrumentId,
+  symbol,
+  side,
+  effectiveFrom,
+  initial,
+}: {
+  instrumentId: string;
+  symbol: string;
+  side: "buy" | "sell";
+  effectiveFrom: string;
+  initial: TierInput[];
+}) {
+  const [action, pending] = useToastState(saveFundFees);
+  const [tiers, setTiers] = useState<TierInput[]>(
+    initial.length ? initial : [{ fromMonths: "0", op: "gte", fee: "0" }],
+  );
+  const set = (i: number, patch: Partial<TierInput>) =>
+    setTiers((all) => all.map((t, j) => (j === i ? { ...t, ...patch } : t)));
+  return (
+    <form
+      action={action}
+      className="flex flex-col gap-3 border-t border-line-soft pt-3 first:border-t-0"
+    >
+      <input type="hidden" name="instrumentId" value={instrumentId} />
+      <input type="hidden" name="side" value={side} />
+      <input type="hidden" name="tiers" value={JSON.stringify(tiers)} />
+      <span className="text-sm font-bold">
+        {symbol} · {side === "sell" ? "Phí bán" : "Phí mua"}
+      </span>
+      {tiers.map((t, i) => (
+        <div key={i} className="flex flex-wrap items-end gap-2.5">
+          <Field label="Nắm giữ" className="flex-[0_1_90px]">
+            <select
+              value={t.op}
+              onChange={(e) => set(i, { op: e.target.value as "gte" | "gt" })}
+              className={selectClass}
+            >
+              <option value="gte">≥</option>
+              <option value="gt">&gt;</option>
+            </select>
+          </Field>
+          <Field label="Tháng" className="flex-[0_1_100px]">
+            <input
+              inputMode="numeric"
+              required
+              value={t.fromMonths}
+              onChange={(e) => set(i, { fromMonths: e.target.value })}
+              className={`${inputClass} num`}
+            />
+          </Field>
+          <Field label="Phí (%)" className="flex-[0_1_110px]">
+            <input
+              inputMode="decimal"
+              required
+              value={t.fee}
+              onChange={(e) => set(i, { fee: e.target.value })}
+              className={`${inputClass} num`}
+            />
+          </Field>
+          {tiers.length > 1 && (
+            <button
+              type="button"
+              aria-label={`Xoá bậc ${t.fromMonths} tháng`}
+              onClick={() => setTiers((all) => all.filter((_, j) => j !== i))}
+              className={buttonClass("danger")}
+            >
+              Xoá
+            </button>
+          )}
+        </div>
+      ))}
+      <div className="flex flex-wrap items-end gap-2.5">
+        <Field label="Hiệu lực từ">
+          <input
+            type="date"
+            name="effectiveFrom"
+            required
+            defaultValue={effectiveFrom}
+            className={inputClass}
+          />
+        </Field>
+        <button
+          type="button"
+          onClick={() =>
+            setTiers((all) => [...all, { fromMonths: "", op: "gte", fee: "0" }])
+          }
+          className={buttonClass("outline")}
+        >
+          Thêm bậc
+        </button>
+        <button
+          type="submit"
+          disabled={pending}
+          className={buttonClass("primary")}
+        >
+          Lưu biểu phí
         </button>
       </div>
     </form>
@@ -351,7 +471,9 @@ export function InstrumentRow({
       ? "CoinGecko id (VD: bitcoin)"
       : instrument.assetClass === "gold"
         ? "Mã vàng@tiệm (VD: SJC_BAR@DOJI)"
-        : "Mã trên DNSE";
+        : instrument.assetClass === "fund"
+          ? "Fmarket product id (VD: 68)"
+          : "Mã trên DNSE";
   return (
     <form
       action={action}

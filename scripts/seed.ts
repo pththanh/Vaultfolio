@@ -10,6 +10,10 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import { eq, ne, sql } from "drizzle-orm";
 import postgres from "postgres";
 import * as s from "../src/db/schema";
+import {
+  CATALOG_EFFECTIVE_FROM,
+  FUND_CATALOG,
+} from "../src/lib/calc/fund/catalog";
 import { DEFAULT_FEE_CONFIG } from "../src/lib/calc/fees";
 import { ensureDefaultCategories } from "../src/server/default-categories";
 
@@ -120,6 +124,7 @@ async function main() {
         .values([
           { userId: owner.id, name: "DNSE", type: "broker" as const },
           { userId: owner.id, name: "Ví Binance", type: "exchange" as const },
+          { userId: owner.id, name: "Fmarket", type: "broker" as const },
           { userId: owner.id, name: "DOJI", type: "physical" as const },
           {
             userId: owner.id,
@@ -213,6 +218,20 @@ async function main() {
       round: 50,
       days: "weekday",
     },
+    // Funds: price per 100 CCQ, quantities in hundreds of CCQ.
+    {
+      key: "VMEEF",
+      assetClass: "fund",
+      symbol: "VMEEF",
+      name: FUND_CATALOG.VMEEF.name,
+      unit: "ccq",
+      providerRef: FUND_CATALOG.VMEEF.providerRef,
+      start: 1_400_000,
+      end: 1_500_000,
+      vol: 0.008,
+      round: 1,
+      days: "weekday",
+    },
     // Index points are stored in hundredths (1.675,50 điểm → 167550).
     {
       key: "VNINDEX",
@@ -293,10 +312,22 @@ async function main() {
     inst[key] = row.id;
   }
 
+  await db.insert(s.fundFeeSchedules).values(
+    (["buy", "sell"] as const).flatMap((side) =>
+      FUND_CATALOG.VMEEF[side].map((t) => ({
+        ...t,
+        instrumentId: inst.VMEEF,
+        side,
+        effectiveFrom: CATALOG_EFFECTIVE_FROM,
+      })),
+    ),
+  );
+
   console.log("Generating price history…");
   const sourceOf = {
     stock: ["dnse", "15:32"],
     index: ["dnse", "15:32"],
+    fund: ["fmarket", "09:30"],
     crypto: ["coingecko", "07:00"],
     gold: ["finhay", "16:00"],
   } as const;
@@ -305,6 +336,7 @@ async function main() {
     const last =
       spec.assetClass === "stock" ||
       spec.assetClass === "index" ||
+      spec.assetClass === "fund" ||
       spec.assetClass === "gold"
         ? "2026-11-20"
         : "2026-11-21";
@@ -373,6 +405,22 @@ async function main() {
     ...t,
   });
   await db.insert(s.transactions).values([
+    tx({
+      accountId: acc.Fmarket,
+      instrumentId: inst.VMEEF,
+      type: "buy",
+      quantity: "1.05",
+      price: 1_410_000n,
+      tradeDate: "2025-10-10",
+    }),
+    tx({
+      accountId: acc.Fmarket,
+      instrumentId: inst.VMEEF,
+      type: "buy",
+      quantity: "0.7025",
+      price: 1_450_000n,
+      tradeDate: "2026-05-12",
+    }),
     tx({
       accountId: acc.DNSE,
       instrumentId: inst.MWG,

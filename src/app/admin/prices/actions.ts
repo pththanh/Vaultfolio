@@ -5,7 +5,8 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { instruments, prices } from "@/db/schema";
-import { parseViMoney } from "@/lib/calc/decimal";
+import { parseViMoney, parseViNumber } from "@/lib/calc/decimal";
+import { scaledNavToPrice } from "@/lib/calc/fund/units";
 import { perLuongToPerChi } from "@/lib/calc/gold";
 import { todayVN } from "@/lib/format";
 import { requireUser } from "@/server/session";
@@ -64,16 +65,19 @@ export async function overridePrice(
   const { instrumentId, date, unit } = parsed.data;
   if (date > todayVN()) return { error: "Ngày không được ở tương lai" };
 
-  let price: bigint;
-  try {
-    price = parseViMoney(parsed.data.price);
-  } catch {
-    return { error: "Giá không hợp lệ" };
-  }
   const instrument = await db.query.instruments.findFirst({
     where: eq(instruments.id, instrumentId),
   });
   if (!instrument) return { error: "Không tìm thấy tài sản" };
+  let price: bigint;
+  try {
+    price =
+      instrument.assetClass === "fund"
+        ? scaledNavToPrice(parseViNumber(parsed.data.price))
+        : parseViMoney(parsed.data.price);
+  } catch {
+    return { error: "Giá không hợp lệ" };
+  }
   if (instrument.assetClass === "gold" && unit === "luong")
     price = perLuongToPerChi(price);
   if (price <= 0n) return { error: "Giá phải lớn hơn 0" };

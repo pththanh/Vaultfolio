@@ -42,6 +42,26 @@ describe("transactions CSV", () => {
     ]);
   });
 
+  it("shows funds as CCQ and NAV, and stores them per 100 CCQ", () => {
+    const row = {
+      date: "2026-01-02",
+      type: "buy" as const,
+      assetClass: "fund" as const,
+      symbol: "VMEEF",
+      account: "Fmarket",
+      quantity: "0.105",
+      price: 1_000_002n,
+      fee: 0n,
+      tax: 0n,
+      note: "",
+    };
+    const csv = toTransactionsCsv([row]);
+    expect(csv).toContain("VMEEF,Fmarket,10.5,10000.02,0,0,");
+    expect(parseTransactionsCsv(csv).rows).toEqual([{ ...row, line: 2 }]);
+    const bad = parseTransactionsCsv(csv.replace(",buy,", ",bonus_share,"));
+    expect(bad.errors[0].message).toMatch(/mua và bán/);
+  });
+
   it("reports invalid rows with line numbers and keeps valid ones", () => {
     const csv = [
       CSV_HEADER.join(","),
@@ -73,6 +93,7 @@ describe("snapshots CSV", () => {
         byClass: {
           stock: { marketValue: 100n, costBasis: 90n },
           savings: { marketValue: 50n, costBasis: 50n },
+          fund: { marketValue: 20n, costBasis: 25n },
           gold: { marketValue: 0n, costBasis: 0n },
           crypto: { marketValue: 10n, costBasis: 12n },
         },
@@ -83,8 +104,8 @@ describe("snapshots CSV", () => {
       },
     ]);
     expect(csv.split("\n")).toEqual([
-      "date,stock,savings,gold,crypto,cash,receivable,liability,total,cost_basis,vnindex",
-      "2026-11-20,100,50,0,10,40,5,-7,198,152,1688.79",
+      "date,stock,savings,fund,gold,crypto,cash,receivable,liability,total,cost_basis,vnindex",
+      "2026-11-20,100,50,20,0,10,40,5,-7,218,177,1688.79",
     ]);
   });
 });

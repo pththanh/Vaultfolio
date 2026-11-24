@@ -6,10 +6,11 @@ export const SOURCE_LABEL: Record<string, string> = {
   finhay: "Finhay",
   vnstock_js: "vnstock-js",
   vcb: "Vietcombank",
+  fmarket: "Fmarket",
   manual: "Nhập tay",
 };
 
-export type JobKey = "stock" | "crypto" | "gold" | "fx" | "snapshot";
+export type JobKey = "stock" | "fund" | "crypto" | "gold" | "fx" | "snapshot";
 
 export const JOBS: Record<
   JobKey,
@@ -27,6 +28,13 @@ export const JOBS: Record<
     schedule: "15:30 ngày giao dịch",
     fallback: "Nhập tay",
     label: "Cổ phiếu VN",
+  },
+  fund: {
+    kind: "Quỹ mở",
+    name: "Fmarket",
+    schedule: "09:30 hằng ngày",
+    fallback: "Nhập tay",
+    label: "NAV quỹ mở",
   },
   crypto: {
     kind: "Crypto",
